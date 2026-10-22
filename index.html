@@ -201,7 +201,7 @@ button,input,textarea{font-family:inherit;color:inherit;}
     <div class="tb">
       <button class="backbtn" onclick="toList()">‹</button>
       <div class="av" id="chatAv"></div>
-      <div><div class="tb-ttl" id="chatTitle"></div><div class="tb-sub" id="chatSub">Claude AI · Online</div></div>
+      <div><div class="tb-ttl" id="chatTitle"></div><div class="tb-sub" id="chatSub">OpenAI · Online</div></div>
     </div>
     <div class="msgs" id="msgBox"></div>
     <div class="comp">
@@ -221,7 +221,7 @@ button,input,textarea{font-family:inherit;color:inherit;}
 <div class="mbg" id="modal">
   <div class="mbox">
     <h2>Buat Bot Baru 🤖</h2>
-    <p class="msub">Bot ini ditenagai Claude AI — bisa jawab apa aja sesuai kepribadian yang kamu atur.</p>
+    <p class="msub">Bot ini ditenagai OpenAI — bisa jawab apa aja sesuai kepribadian yang kamu atur.</p>
     <div class="errt" id="merr"></div>
     <div class="mfield"><label>Nama bot</label><input id="mname" placeholder="misal: Kawan Santai"/></div>
     <div class="mfield"><label>Kepribadian / instruksi</label>
@@ -243,7 +243,6 @@ const WOK_BOT = {
 };
 
 // ═══ STATE ════════════════════════════════════════
-let $sample = null;
 let $db = null;
 let curBot = null;
 let username = '';
@@ -263,12 +262,7 @@ function lsSet(k,v) { try { localStorage.setItem(k,JSON.stringify(v)); } catch(e
 // ═══ INIT ═════════════════════════════════════════
 (async () => {
   // Load capabilities
-  try {
-    [$sample, $db] = await Promise.all([
-      claude.use('sample'),
-      claude.use('db')
-    ]);
-  } catch(e) {}
+  try { if (typeof claude !== 'undefined') $db = await claude.use('db'); } catch(e) {}
 
   // Cek apakah sudah punya username
   let savedUser = lsGet('wok_user');
@@ -517,27 +511,45 @@ async function toggleMic(){
   }else{_mr.stop();}
 }
 
-// ═══ CLAUDE AI ════════════════════════════════════
+// ═══ OPENAI ═══════════════════════════════════════
+const OPENAI_MODEL = 'gpt-4o-mini';
+const OPENAI_KEY = ''; // opsional: isi di sini, kalau kosong akan diminta saat pertama kali chat
+
+function getKey(){
+  let k = OPENAI_KEY || localStorage.getItem('wok_openai_key') || '';
+  if(!k){
+    k = (prompt('Masukkan OpenAI API key (sk-...):')||'').trim();
+    if(k) localStorage.setItem('wok_openai_key', k);
+  }
+  return k;
+}
+
 async function getAiReply(history, extra=''){
-  if(!$sample){
-    addBubble({from:'bot',type:'text',text:'⚠️ AI tidak tersedia di sini.',time:ts()});
+  const key = getKey();
+  if(!key){
+    addBubble({from:'bot',type:'text',text:'⚠️ API key OpenAI belum diisi.',time:ts()});
     return;
   }
   showTyping();
   try{
-    const textMsgs=history.filter(m=>m.type==='text').slice(-18);
-    const lines=textMsgs.map(m=>`${m.from==='me'?'User':'Asisten'}: ${m.text}`).join('\n');
-    const prompt=`${curBot.persona}
+    const messages=[{role:'system',content:curBot.persona+'\nBalas singkat sebagai '+curBot.name+'.'}];
+    history.filter(m=>m.type==='text').slice(-18).forEach(m=>{
+      messages.push({role:m.from==='me'?'user':'assistant',content:m.text});
+    });
+    if(extra) messages.push({role:'user',content:extra});
 
-Riwayat obrolan sejauh ini:
-${lines}
-${extra?'\n'+extra:''}
-
-Berikan balasan singkat sebagai ${curBot.name}:`;
-
-    const res=await $sample(prompt,{modelTier:'default'});
+    const r=await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:OPENAI_MODEL,messages,max_tokens:400})
+    });
+    const data=await r.json();
+    if(!r.ok){
+      if(r.status===401) localStorage.removeItem('wok_openai_key');
+      throw new Error(data.error?.message||('HTTP '+r.status));
+    }
     hideTyping();
-    const reply={from:'bot',type:'text',text:res.text.trim(),time:ts()};
+    const reply={from:'bot',type:'text',text:data.choices[0].message.content.trim(),time:ts()};
     addBubble(reply);
     const msgs=await getMsgs(); msgs.push(reply);
     await putMsgs(msgs);
