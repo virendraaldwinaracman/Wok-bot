@@ -442,7 +442,7 @@ function addBubble(m){
   } else if(m.type==='voice'){
     b.innerHTML=`<audio controls src="${m.data}"></audio><span class="bt">${m.time}</span>`;
   } else {
-    b.innerHTML=esc(m.text)+`<span class="bt">${m.time}</span>`;
+    b.innerHTML=esc(m.text).replace(/\n/g,'<br>')+`<span class="bt">${m.time}</span>`;
   }
   box.appendChild(b); box.scrollTop=box.scrollHeight;
 }
@@ -452,6 +452,16 @@ async function doSend(){
   const inp=$$('msginp'), text=inp.value.trim();
   if(!text||!curBot) return;
   inp.value='';
+  if(text==='/tes'){
+    const key=getKey(), out=[];
+    const t=async(n,f)=>{try{const r=await f();out.push(n+': OK '+r.status);}catch(e){out.push(n+': GAGAL '+e.name+' - '+e.message);}};
+    await t('1 GET tanpa header',()=>fetch('https://api.openai.com/v1/models'));
+    await t('2 GET + key',()=>fetch('https://api.openai.com/v1/models',{headers:{'Authorization':'Bearer '+key}}));
+    await t('3 POST + key',()=>fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:'{}'}));
+    addBubble({from:'bot',type:'text',text:out.join('\n'),time:ts()});
+    return;
+  }
+  if(text==='/resetkey'){ localStorage.removeItem('wok_openai_key'); alert('Key dihapus. Kirim pesan lagi untuk memasukkan key baru.'); return; }
   const msg={from:'me',type:'text',text,time:ts()};
   const msgs=await getMsgs(); msgs.push(msg);
   await putMsgs(msgs);
@@ -513,19 +523,20 @@ async function toggleMic(){
 
 // ═══ OPENAI ═══════════════════════════════════════
 const OPENAI_MODEL = 'gpt-4o-mini';
+const PROXY_URL = 'https://wok-ai.virendraaldwinaracman.workers.dev'; // isi dengan URL Cloudflare Worker (lihat worker.js)
 const OPENAI_KEY = ''; // opsional: isi di sini, kalau kosong akan diminta saat pertama kali chat
 
 function getKey(){
-  let k = OPENAI_KEY || localStorage.getItem('wok_openai_key') || '';
+  let k = (OPENAI_KEY || localStorage.getItem('wok_openai_key') || '').replace(/[^\x21-\x7E]/g,'');
   if(!k){
-    k = (prompt('Masukkan OpenAI API key (sk-...):')||'').trim();
+    k = (prompt('Masukkan OpenAI API key (sk-...):')||'').replace(/[^\x21-\x7E]/g,'');
     if(k) localStorage.setItem('wok_openai_key', k);
   }
   return k;
 }
 
 async function getAiReply(history, extra=''){
-  const key = getKey();
+  const key = PROXY_URL ? 'proxy' : getKey();
   if(!key){
     addBubble({from:'bot',type:'text',text:'⚠️ API key OpenAI belum diisi.',time:ts()});
     return;
@@ -538,11 +549,13 @@ async function getAiReply(history, extra=''){
     });
     if(extra) messages.push({role:'user',content:extra});
 
-    const r=await fetch('https://api.openai.com/v1/chat/completions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-      body:JSON.stringify({model:OPENAI_MODEL,messages,max_tokens:400})
-    });
+    const r=PROXY_URL
+      ? await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages})})
+      : await fetch('https://api.openai.com/v1/chat/completions',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+          body:JSON.stringify({model:OPENAI_MODEL,messages,max_tokens:400})
+        });
     const data=await r.json();
     if(!r.ok){
       if(r.status===401) localStorage.removeItem('wok_openai_key');
@@ -555,7 +568,9 @@ async function getAiReply(history, extra=''){
     await putMsgs(msgs);
   }catch(e){
     hideTyping();
-    addBubble({from:'bot',type:'text',text:'⚠️ '+(e.message||'Gagal'),time:ts()});
+    let m=e.message||'Gagal';
+    if(/failed to fetch/i.test(m)) m+=' (key '+key.length+' karakter, mulai "'+key.slice(0,3)+'"). Coba tombol reset key: ketik /resetkey';
+    addBubble({from:'bot',type:'text',text:'⚠️ '+m,time:ts()});
   }
 }
 
