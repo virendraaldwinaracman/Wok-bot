@@ -697,11 +697,35 @@ function buildMessages(opts){
   return arr;
 }
 function NoKey(){var e=new Error("nokey");e.code="nokey";return e}
+async function pickModel(base,pv,bad){
+  try{
+    var r=await fetch(base+"/models",{headers:{"Authorization":"Bearer "+settings.key}});
+    if(!r.ok)return null;
+    var j=await r.json();
+    var ids=(j.data||j.models||[]).map(function(m){return String(m.id||m.name||"").replace(/^models\//,"")}).filter(Boolean);
+    var skip=/whisper|tts|guard|safeguard|orpheus|playai|embed|moderation|transcri|speech|image|dall|realtime|audio|vision-preview|imagen|veo|aqa/i;
+    ids=ids.filter(function(i){return i!==bad&&!skip.test(i)});
+    for(var k=0;k<pv.models.length;k++){if(pv.models[k]!==bad&&ids.indexOf(pv.models[k])>-1)return pv.models[k]}
+    return ids[0]||null;
+  }catch(_){return null}
+}
 async function askAI(messages,onDelta,opts){
   if(!settings.key)throw NoKey();
   var pv=PROV[settings.provider]||PROV.openai;var base=(settings.base||pv.base).replace(/\/+$/,"");
-  var res=await fetch(base+"/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+settings.key},
-    body:JSON.stringify({model:settings.model||pv.model,messages:messages,stream:true,temperature:.7})});
+  var model=settings.model||pv.model;
+  function req(m){return fetch(base+"/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+settings.key},
+    body:JSON.stringify({model:m,messages:messages,stream:true,temperature:.7})})}
+  var res=await req(model);
+  if(!res.ok&&(res.status===404||res.status===400)){
+    var d0="";try{var jj=await res.clone().json();d0=(jj.error&&jj.error.message)||""}catch(_){}
+    if(res.status===404||/model|decommission/i.test(d0)){
+      var alt=await pickModel(base,pv,model);
+      if(alt){
+        var res2=await req(alt);
+        if(res2.ok){res=res2;settings.model=alt;save("wok.set",settings);try{notice("Model otomatis diganti ke "+alt)}catch(_){}}
+      }
+    }
+  }
   if(!res.ok){var e=new Error("http");e.code="http";e.status=res.status;try{var j=await res.json();e.detail=j.error&&j.error.message}catch(_){}throw e}
   if(!res.body||!res.body.getReader){var j2=await res.json();var tx=j2.choices[0].message.content;onDelta(tx,tx);return tx}
   var rd=res.body.getReader(),dec=new TextDecoder(),buf="",all="";
