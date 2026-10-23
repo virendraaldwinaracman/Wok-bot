@@ -453,13 +453,6 @@ body{animation:none}
 .logo.sm img.wl{width:80%;height:80%;animation:none}
 @keyframes blink2{0%,92%,100%{transform:none}95%{transform:scaleY(.9) rotate(-3deg)}}
 </style>
-<style id="owner-css">
-.own-hide{display:none!important}
-.annc{display:none;margin:8px 0 0;padding:9px 14px;border:1.5px dashed var(--ink);background:var(--sun);color:#1f1a14;border-radius:14px 16px 13px 17px;font-family:var(--f-hand);font-size:19px;line-height:1.15;animation:rise .5s both}
-.annc.on{display:block}
-.set-field textarea{border:2px solid var(--ink);border-radius:13px 15px 12px 16px;background:var(--bg);padding:10px 12px;font-size:16px;min-height:72px;resize:vertical}
-.set-field label input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);vertical-align:-3px;margin-right:6px}
-</style>
 <!-- LOGIN -->
 <main id="login" class="screen">
   <div class="aurora"><i></i><i></i><i></i></div><div class="grain"></div>
@@ -517,7 +510,6 @@ body{animation:none}
       <button class="iconbtn theme-ico" id="themeBtn" aria-label="Ganti tema"><svg class="ico moon" data-i="moon"></svg><svg class="ico sun" data-i="sun"></svg></button>
       <button class="iconbtn" id="setBtn" aria-label="Pengaturan"><svg class="ico" data-i="gear"></svg></button>
     </header>
-    <div class="annc" id="annc"></div>
     <div class="msgs" id="msgs" aria-live="polite"></div>
     <div class="composer">
       <div class="menu" id="attMenu" hidden>
@@ -554,7 +546,7 @@ body{animation:none}
       <form class="cs-row" id="csForm"><input id="csInput" placeholder="Tulis pesan ke CS" autocomplete="off"><button type="submit" aria-label="Kirim ke CS"><svg class="ico" data-i="send"></svg></button></form>
     </div>
     <div class="contact"><span>Email CS<br><b>gtcwelll@gmail.com</b></span><button data-copy="gtcwelll@gmail.com">Salin</button></div>
-    <div class="contact"><span>Jam layanan<br><b id="csHours">Setiap hari, 08.00 - 22.00 WIB</b></span></div>
+    <div class="contact"><span>Jam layanan<br><b>Setiap hari, 08.00 - 22.00 WIB</b></span></div>
   </div>
 </section>
 <section class="sheet" id="aboutSheet" aria-label="Tentang WOK">
@@ -564,33 +556,6 @@ body{animation:none}
     <div class="contact"><span>Dibuat oleh<br><b>virendraaldwinaracman</b></span></div>
     <div class="contact"><span>Versi<br><b>1.0, masih hangat dari wajan</b></span></div>
   </div>
-</section>
-<section class="sheet" id="ownSheet" aria-label="Panel Owner">
-  <div class="grab"></div><h3>Panel Owner</h3><p class="sub" id="ownSub">Area khusus pemilik WOK.</p>
-  <div class="body" id="ownGate">
-    <div class="set-field"><label id="pinLbl">PIN owner</label><input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></div>
-    <p class="err" id="pinErr" role="alert"></p>
-    <button class="btn accent" id="pinGo" type="button">Masuk</button>
-  </div>
-  <div class="body own-hide" id="ownMain">
-    <div class="warn" id="ownStats" style="line-height:1.7"></div>
-    <div class="set-field"><label><input type="checkbox" id="cfAnnOn"> Tampilkan pengumuman di atas chat</label><textarea id="cfAnn" placeholder="Contoh: Diskon, update baru, info penting"></textarea></div>
-    <div class="set-field"><label><input type="checkbox" id="cfMtOn"> Mode perawatan (chat dikunci untuk pengguna)</label><textarea id="cfMt"></textarea></div>
-    <div class="set-field"><label>Nama bot</label><input id="cfName" maxlength="20"></div>
-    <div class="set-field"><label>Pesan sambutan</label><textarea id="cfWel" placeholder="Kosongkan untuk teks bawaan"></textarea></div>
-    <div class="set-field"><label>Chip saran (satu per baris, maks 6)</label><textarea id="cfSug"></textarea></div>
-    <div class="set-field"><label>Jam layanan CS</label><input id="cfHours"></div>
-    <div class="warn">Tombol Pratinjau hanya mengubah browser ini. Supaya berlaku untuk semua orang: salin atau unduh config.json, lalu upload ke repo Wok-bot (folder yang sama dengan index.html).</div>
-    <button class="btn accent" id="ownPrev" type="button">Pratinjau</button>
-    <button class="btn" id="ownCopy" type="button">Salin config.json</button>
-    <button class="btn ghost" id="ownDl" type="button">Unduh config.json</button>
-    <button class="btn ghost" id="ownExp" type="button">Ekspor riwayat chat</button>
-    <button class="btn ghost" id="ownImp" type="button">Impor riwayat chat</button>
-    <input type="file" id="ownFile" accept=".json,application/json" hidden>
-    <button class="btn ghost" id="ownPin" type="button">Ganti PIN</button>
-    <button class="btn ghost" id="ownLock" type="button">Kunci panel</button>
-  </div>
-  <p class="notice" id="ownMsg" style="opacity:0;position:sticky;bottom:0;transition:opacity .3s;margin:6px auto 0"></p>
 </section>
 <section class="sheet" id="setSheet" aria-label="Pengaturan">
   <div class="grab"></div><h3>Pengaturan</h3><p class="sub">Pilih Groq, OpenAI, atau Gemini, lalu tempel API key kamu.</p>
@@ -797,7 +762,7 @@ function initChat(){
 function renderEmpty(){
   var u=window.__wok.getUser();var name=u&&u.name?u.name:"";
   var d=document.createElement("div");d.className="empty";d.id="emptyState";
-  d.innerHTML='<div class="logo" style="animation:logoIn .8s both"></div><h3>Halo'+(name?", "+esc(name):"")+'</h3><p>'+esc(window.__welcome||'Aku WOK-BOT. Tanya apa aja, kirim foto atau file, atau telepon aku juga boleh.')+'</p><div class="chips"></div>';
+  d.innerHTML='<div class="logo" style="animation:logoIn .8s both"></div><h3>Halo'+(name?", "+esc(name):"")+'</h3><p>Aku WOK-BOT. Tanya apa aja, kirim foto atau file, atau telepon aku juga boleh.</p><div class="chips"></div>';
   d.querySelector(".logo").innerHTML=LOGO;
   SUGGEST.forEach(function(s){var b=document.createElement("button");b.className="chip";b.textContent=s;b.onclick=function(){promptEl.value=s;autosize();doSend()};d.querySelector(".chips").appendChild(b)});
   msgsEl.appendChild(d);
@@ -844,7 +809,7 @@ sendBtn.addEventListener("click",doSend);
 
 function typingEl(){var w=document.createElement("div");w.className="msg bot";w.innerHTML='<div class="bubble typing"><i></i><i></i><i></i></div>';msgsEl.appendChild(w);scrollDown();return w}
 
-async function doSend(){if(CFG.maint&&CFG.maint.on&&!ownerOK){notice(CFG.maint.msg||"Lagi perawatan.");return}
+async function doSend(){
   var text=promptEl.value.trim();if((!text&&!pending.length)||busy)return;
   var m={id:uid(),role:"user",text:text,imgs:[],files:[],fileTexts:[]};
   pending.forEach(function(p){if(p.type==="image"){m.imgs.push(p.data)}else{m.files.push(p.name);m.fileTexts.push({name:p.name,text:p.text})}});
@@ -1170,69 +1135,6 @@ $("#saveSet").addEventListener("click",function(){
 $("#aboutBtn").addEventListener("click",function(){closeSheet();setTimeout(function(){openSheet("#aboutSheet")},380)});
 $("#clearChat").addEventListener("click",function(){history=[];saveHistory();drop("wok.chat");msgsEl.innerHTML="";renderEmpty();closeSheet()});
 $("#logout").addEventListener("click",function(){drop("wok.user");location.reload()});
-
-/* ===== fitur owner ===== */
-var CFG={announce:{on:false,text:""},maint:{on:false,msg:"WOK lagi dirapikan sebentar. Coba lagi nanti ya."},botName:"WOK-BOT",welcome:"",suggest:[],hours:""};
-var ownerOK=false,pinFails=0,pinLock=0;
-function applyCfg(c){
-  c=c||{};
-  CFG.announce=Object.assign({on:false,text:""},c.announce||{});
-  CFG.maint=Object.assign({on:false,msg:CFG.maint.msg},c.maint||{});
-  CFG.botName=c.botName||"WOK-BOT";CFG.welcome=c.welcome||"";CFG.suggest=c.suggest||[];CFG.hours=c.hours||"";
-  var a=$("#annc");
-  if(CFG.announce.on&&CFG.announce.text){a.textContent=CFG.announce.text;a.className="annc on"}else a.className="annc";
-  var wb=$(".topbar .who b");if(wb)wb.textContent=CFG.botName;
-  if(CFG.suggest.length)SUGGEST=CFG.suggest.slice(0,6);
-  window.__welcome=CFG.welcome;
-  if(CFG.hours)$("#csHours").textContent=CFG.hours;
-  var em=$("#emptyState");if(em){em.remove();renderEmpty()}
-}
-try{fetch("config.json?t="+Date.now()).then(function(r){return r.ok?r.json():null}).then(function(c){if(c)applyCfg(c)}).catch(function(){})}catch(_){}
-if(!load("wok.first",null))save("wok.first",new Date().toISOString());
-async function sha(t){try{var b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("wok:"+t));return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0")}).join("")}catch(_){return btoa("wok:"+t)}}
-function ownMsg(t){var m=$("#ownMsg");m.textContent=t;m.style.opacity=1;clearTimeout(ownMsg.t);ownMsg.t=setTimeout(function(){m.style.opacity=0},2600)}
-function showOwn(){
-  var has=!!load("wok.pin",null);
-  $("#ownGate").classList.toggle("own-hide",ownerOK);$("#ownMain").classList.toggle("own-hide",!ownerOK);
-  $("#pinLbl").textContent=has?"Masukkan PIN owner":"Buat PIN owner (4-8 angka)";$("#pinGo").textContent=has?"Masuk":"Simpan PIN";
-  $("#ownSub").textContent=ownerOK?"Atur WOK dari sini.":"Area khusus pemilik WOK.";
-  if(ownerOK)fillOwn();
-  openSheet("#ownSheet");
-}
-function fillOwn(){
-  var u=history.filter(function(m){return m.role!=="bot"}).length,b=history.length-u;
-  var f=load("wok.first",null);
-  $("#ownStats").innerHTML="Pesan masuk (di browser ini): <b>"+u+"</b><br>Jawaban bot: <b>"+b+"</b><br>Favorit: <b>"+favs.length+"</b><br>Pertama dibuka: <b>"+(f?new Date(f).toLocaleDateString("id-ID"):"-")+"</b><br>Penyedia AI: <b>"+(PROV[settings.provider]||{}).name+"</b>, model <b>"+esc(settings.model||"-")+"</b><br>API key: <b>"+(settings.key?"terisi":"kosong")+"</b>";
-  $("#cfAnnOn").checked=!!CFG.announce.on;$("#cfAnn").value=CFG.announce.text||"";
-  $("#cfMtOn").checked=!!CFG.maint.on;$("#cfMt").value=CFG.maint.msg||"";
-  $("#cfName").value=CFG.botName||"";$("#cfWel").value=CFG.welcome||"";
-  $("#cfSug").value=(CFG.suggest.length?CFG.suggest:SUGGEST).join("\n");$("#cfHours").value=CFG.hours||$("#csHours").textContent;
-}
-function readOwn(){return{announce:{on:$("#cfAnnOn").checked,text:$("#cfAnn").value.trim()},maint:{on:$("#cfMtOn").checked,msg:$("#cfMt").value.trim()},
-  botName:$("#cfName").value.trim()||"WOK-BOT",welcome:$("#cfWel").value.trim(),suggest:$("#cfSug").value.split("\n").map(function(x){return x.trim()}).filter(Boolean).slice(0,6),hours:$("#cfHours").value.trim()}}
-function dl(n,t){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"application/json"}));a.download=n;document.body.appendChild(a);a.click();a.remove()}
-(function(){
-  var taps=0,tt;
-  $(".topbar .logo.sm").addEventListener("click",function(){taps++;clearTimeout(tt);tt=setTimeout(function(){taps=0},2500);if(taps>=5){taps=0;showOwn()}});
-  $("#pinGo").addEventListener("click",async function(){
-    var v=$("#pinIn").value.trim(),er=$("#pinErr");er.textContent="";
-    if(Date.now()<pinLock){er.textContent="Terlalu banyak salah. Tunggu sebentar.";return}
-    if(!/^\d{4,8}$/.test(v)){er.textContent="PIN harus 4 sampai 8 angka.";return}
-    var h=load("wok.pin",null),x=await sha(v);
-    if(!h){save("wok.pin",x);ownerOK=true}
-    else if(h===x){ownerOK=true;pinFails=0}
-    else{pinFails++;if(pinFails>=5){pinLock=Date.now()+30000;pinFails=0}er.textContent="PIN salah.";return}
-    $("#pinIn").value="";showOwn();
-  });
-  $("#ownPrev").addEventListener("click",function(){applyCfg(readOwn());ownMsg("Pratinjau aktif di browser ini saja.")});
-  $("#ownCopy").addEventListener("click",function(){var t=JSON.stringify(readOwn(),null,2);(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){ownMsg("config.json disalin.")}).catch(function(){dl("config.json",t);ownMsg("Disalin gagal, file diunduh.")})});
-  $("#ownDl").addEventListener("click",function(){dl("config.json",JSON.stringify(readOwn(),null,2));ownMsg("config.json diunduh.")});
-  $("#ownExp").addEventListener("click",function(){dl("riwayat-wok.json",JSON.stringify({chat:history,favs:favs},null,2));ownMsg("Riwayat diunduh.")});
-  $("#ownImp").addEventListener("click",function(){$("#ownFile").click()});
-  $("#ownFile").addEventListener("change",function(){var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var j=JSON.parse(r.result);if(!Array.isArray(j.chat))throw 0;save("wok.chat",j.chat);save("wok.favs",j.favs||[]);location.reload()}catch(_){ownMsg("File tidak valid.")}};r.readAsText(f)});
-  $("#ownPin").addEventListener("click",function(){drop("wok.pin");ownerOK=false;showOwn()});
-  $("#ownLock").addEventListener("click",function(){ownerOK=false;closeSheet()});
-})();
 
 /* ----- mulai ----- */
 if(user&&user.name){showChatNow();}
