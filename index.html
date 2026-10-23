@@ -258,6 +258,7 @@ svg{display:block}
 .cs-box{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .cs-log{display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto}
 .cs-log .msg{max-width:92%}
+.cs-mail{height:44px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);padding:0 12px;font-size:16px;width:100%}
 .cs-row{display:flex;gap:8px}
 .cs-row input{flex:1;min-width:0;height:44px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);padding:0 12px;font-size:16px}
 .cs-row button{width:44px;height:44px;border-radius:14px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center}
@@ -392,9 +393,10 @@ svg{display:block}
     <div id="faqList" style="display:flex;flex-direction:column;gap:8px"></div>
     <div class="cs-box">
       <div class="cs-log" id="csLog"></div>
+      <input class="cs-mail" id="csEmail" type="email" inputmode="email" placeholder="Gmail kamu (wajib, untuk balasan)" autocomplete="email" spellcheck="false">
       <form class="cs-row" id="csForm"><input id="csInput" placeholder="Tulis pesan ke CS" autocomplete="off"><button type="submit" aria-label="Kirim ke CS"><svg class="ico" data-i="send"></svg></button></form>
     </div>
-    <div class="contact"><span>Email CS<br><b>gtcwelll@gmail.com</b></span><button data-copy="cs@wok.app">Salin</button></div>
+    <div class="contact"><span>Email CS<br><b>gtcwelll@gmail.com</b></span><button data-copy="gtcwelll@gmail.com">Salin</button></div>
     <div class="contact"><span>Jam layanan<br><b>Setiap hari, 08.00 - 22.00 WIB</b></span></div>
   </div>
 </section>
@@ -931,14 +933,30 @@ function csSay(t,user){
   var log=$("#csLog");log.appendChild(w);log.scrollTop=log.scrollHeight;
 }
 $("#csBtn").addEventListener("click",function(){openSheet("#csSheet")});
+var CS_TO="gtcwelll@gmail.com";
+$("#csEmail").value=load("wok.csmail","");
 $("#csForm").addEventListener("submit",async function(e){
-  e.preventDefault();var i=$("#csInput"),v=i.value.trim();if(!v)return;i.value="";csSay(v,true);
-  var s=v.toLowerCase(),a="Terima kasih, pesanmu sudah kami catat. Tim CS membalas lewat email dalam 1x24 jam.";
+  e.preventDefault();var i=$("#csInput"),em=$("#csEmail"),v=i.value.trim();if(!v)return;
+  var mail=em.value.trim().toLowerCase();
+  if(!/^[a-z0-9._+-]+@gmail\.com$/.test(mail)){csSay(v,true);i.value="";await sleep(300);csSay("Isi dulu alamat Gmail kamu sendiri (contoh: nama@gmail.com) di kolom atas supaya tim CS bisa membalas. Setelah itu kirim lagi pesanmu.");em.focus();return}
+  save("wok.csmail",mail);i.value="";csSay(v,true);
+  var s=v.toLowerCase(),a="";
   if(/otp|kode|login|masuk/.test(s))a="Kode OTP muncul otomatis di layar verifikasi. Kalau kode sudah lewat 2 menit, ketuk Kirim ulang.";
   else if(/api|key|openai|jawab/.test(s))a="Buka Pengaturan, pilih penyedia AI, isi API key, lalu simpan. Cek juga kuota atau saldo akunmu.";
   else if(/suara|mic|telepon|call/.test(s))a="Pastikan izin mikrofon aktif di browser. Di layar telepon kamu juga bisa mengetik lewat tombol keyboard.";
   else if(/tema|gelap|terang|dark|light/.test(s))a="Ketuk ikon bulan atau matahari di bagian atas chat untuk mengganti tema.";
-  await sleep(700);csSay(a);
+  var btn=$("#csForm button");btn.disabled=true;
+  var ok=false;
+  try{
+    var r=await fetch("https://formsubmit.co/ajax/"+CS_TO,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},
+      body:JSON.stringify({_subject:"Pesan CS WOK-BOT dari "+mail,_captcha:"false",_template:"table",name:(typeof user!=="undefined"&&user&&user.name)||"Pengguna WOK",email:mail,message:v})});
+    var j=await r.json().catch(function(){return{}});
+    ok=r.ok&&String(j.success)!=="false";
+  }catch(_){}
+  btn.disabled=false;
+  await sleep(500);
+  if(ok)csSay((a?a+"\n\n":"")+"Pesanmu sudah dikirim ke tim CS. Balasan dikirim ke "+mail+" dalam 1x24 jam.");
+  else csSay("Pesan belum terkirim. Periksa koneksi internetmu lalu coba kirim lagi."+(a?"\n\n"+a:""));
 });
 /* pengaturan */
 function fillProv(p,keepModel){
