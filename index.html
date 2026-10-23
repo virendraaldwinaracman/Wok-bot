@@ -1,606 +1,943 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
 <title>WOK</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
+/* Layout: satu layar penuh per tahap (login > OTP > chat), sheet naik dari bawah untuk Favorit, CS, Pengaturan. */
 :root{
-  --bg:#1a1a1f;--surf:#25252d;--card:#2e2e38;--border:#3d3d4a;
-  --text:#f0f0f5;--muted:#8888a0;--accent:#8b6cf7;--acc2:#d97359;
-  --me:#1e3040;--bot:#25252d;--green:#30d158;
-  color-scheme:dark;
+  --bg:#f3f3f0; --surface:#ffffff; --surface2:#ebebe7; --fg:#101211; --muted:#6a6e6b;
+  --line:#dcdcd6; --accent:#0a9f86; --accent-fg:#ffffff; --accent-soft:#d9f3ee;
+  --user-bg:#101211; --user-fg:#f6f6f3; --bot-bg:#ffffff; --bot-fg:#101211;
+  --danger:#d6392f; --logo-bg:#000000; --logo-fg:#ffffff; --shadow:0 10px 30px rgba(16,18,17,.10);
+  --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
 }
-*{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;}
-button,input,textarea{font-family:inherit;color:inherit;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b0c0c; --surface:#151817; --surface2:#1e2220; --fg:#f1f2ee; --muted:#8e938f;
+  --line:#2a2f2d; --accent:#2fd3b4; --accent-fg:#04201a; --accent-soft:#12312b;
+  --user-bg:#2fd3b4; --user-fg:#04201a; --bot-bg:#151817; --bot-fg:#f1f2ee;
+  --danger:#ff6b60; --shadow:0 10px 30px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b0c0c; --surface:#151817; --surface2:#1e2220; --fg:#f1f2ee; --muted:#8e938f;
+  --line:#2a2f2d; --accent:#2fd3b4; --accent-fg:#04201a; --accent-soft:#12312b;
+  --user-bg:#2fd3b4; --user-fg:#04201a; --bot-bg:#151817; --bot-fg:#f1f2ee;
+  --danger:#ff6b60; --shadow:0 10px 30px rgba(0,0,0,.5); color-scheme:dark}
 
-/* loading */
-#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:99;}
-.ldots{display:flex;gap:7px;}
-.ldots span{width:8px;height:8px;border-radius:50%;animation:db 1s infinite ease-in-out;}
-.ldots span:nth-child(1){background:var(--accent);}
-.ldots span:nth-child(2){background:var(--acc2);animation-delay:.15s;}
-.ldots span:nth-child(3){background:var(--green);animation-delay:.3s;}
-@keyframes db{0%,80%,100%{transform:translateY(0);opacity:.4;}40%{transform:translateY(-8px);opacity:1;}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  overflow:hidden;transition:background .4s,color .4s}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,textarea,select{font:inherit;color:inherit}
+svg{display:block}
+.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-/* screens */
-.scr{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;transition:opacity .4s;}
-.scr.off{opacity:0;pointer-events:none;}
-.scr.gone{display:none!important;}
+/* ---------- screens ---------- */
+.screen{position:absolute;inset:0;padding-inline:inherit;display:flex;flex-direction:column;align-items:center;
+  transition:opacity .5s ease,transform .6s cubic-bezier(.2,.8,.2,1);overflow:hidden}
+.screen[hidden]{display:none!important}
+.screen.leave{opacity:0;transform:translateY(-24px) scale(.98);pointer-events:none}
+.screen.enter{animation:screenIn .7s cubic-bezier(.2,.8,.2,1) both}
+@keyframes screenIn{from{opacity:0;transform:translateY(28px) scale(.98)}to{opacity:1;transform:none}}
 
-/* splash */
-#spl{background:radial-gradient(ellipse at 50% 30%,#2a1a60 0%,var(--bg) 70%);z-index:50;}
-.s-logo{animation:logoPop .7s cubic-bezier(.2,.9,.3,1.3) forwards .2s;opacity:0;transform:scale(.4);}
-@keyframes logoPop{to{opacity:1;transform:scale(1);}}
-.s-name{font-size:26px;font-weight:800;margin-top:14px;opacity:0;letter-spacing:.5px;background:linear-gradient(135deg,var(--accent),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:fu .5s ease forwards .6s;}
-@keyframes fu{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+/* ---------- login backdrop ---------- */
+.aurora{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none}
+.aurora i{position:absolute;width:60vmax;height:60vmax;border-radius:50%;filter:blur(70px);opacity:.35;animation:drift 18s ease-in-out infinite alternate}
+.aurora i:nth-child(1){background:var(--accent);left:-20vmax;top:-18vmax}
+.aurora i:nth-child(2){background:#8a7cff;right:-24vmax;bottom:-20vmax;animation-delay:-6s;opacity:.22}
+.aurora i:nth-child(3){background:#ffb24a;left:30%;top:55%;width:36vmax;height:36vmax;animation-delay:-11s;opacity:.16}
+@keyframes drift{to{transform:translate(8vmax,6vmax) scale(1.15)}}
+.grain{position:absolute;inset:0;z-index:0;opacity:.5;pointer-events:none;
+  background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:22px 22px;
+  -webkit-mask-image:radial-gradient(circle at 50% 40%,#000 0,transparent 70%);mask-image:radial-gradient(circle at 50% 40%,#000 0,transparent 70%)}
+.login-wrap{position:relative;z-index:1;width:100%;max-width:400px;margin:auto;display:flex;flex-direction:column;align-items:center;gap:22px;padding-block:24px}
 
-/* login */
-#login{background:var(--bg);}
-.lbox{width:100%;max-width:320px;text-align:center;}
-.lbox h1{font-size:22px;font-weight:800;margin-bottom:8px;}
-.lbox p{font-size:13.5px;color:var(--muted);margin-bottom:28px;}
-.inp{width:100%;padding:13px 16px;border-radius:13px;border:1.5px solid var(--border);background:var(--surf);font-size:15px;outline:none;}
-.inp:focus{border-color:var(--accent);}
-.pbtn{width:100%;padding:14px;border-radius:13px;border:none;background:linear-gradient(135deg,var(--accent),var(--acc2));color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:12px;}
-.pbtn:active{filter:brightness(.85);}
-.errt{font-size:12.5px;color:#f4776a;display:none;margin:6px 0;}
+/* ---------- logo ---------- */
+.logo{position:relative;width:104px;height:104px;border-radius:30px;background:var(--logo-bg);color:var(--logo-fg);
+  display:grid;place-items:center;box-shadow:0 0 0 1px var(--line),0 18px 40px rgba(0,0,0,.28);
+  animation:logoIn 1s cubic-bezier(.2,1.3,.3,1) both}
+.logo svg{width:60px;height:60px}
+.logo::before,.logo::after{content:"";position:absolute;inset:-1px;border-radius:inherit;border:2px solid var(--accent);opacity:0;animation:ring 3.2s ease-out infinite}
+.logo::after{animation-delay:1.6s}
+.logo .steam path{stroke-dasharray:14;animation:steam 2.6s ease-in-out infinite;opacity:.9}
+.logo .steam path:nth-child(2){animation-delay:.5s}.logo .steam path:nth-child(3){animation-delay:1s}
+.logo .bowl{transform-origin:50% 70%;animation:toss 4s ease-in-out infinite}
+@keyframes logoIn{from{opacity:0;transform:scale(.3) rotate(-18deg)}to{opacity:1;transform:none}}
+@keyframes ring{0%{opacity:.7;transform:scale(1)}100%{opacity:0;transform:scale(1.55)}}
+@keyframes steam{0%{stroke-dashoffset:14;opacity:0}40%{opacity:.9}100%{stroke-dashoffset:-14;opacity:0}}
+@keyframes toss{0%,70%,100%{transform:rotate(0)}78%{transform:rotate(-7deg) translateY(-1px)}88%{transform:rotate(5deg)}}
+.logo.sm{width:38px;height:38px;border-radius:12px;animation:none;box-shadow:0 0 0 1px var(--line)}
+.logo.sm svg{width:23px;height:23px}.logo.sm::before,.logo.sm::after{display:none}
+.logo.sm .steam path,.logo.sm .bowl{animation:none}
+.brand{font-family:var(--f-display);font-weight:800;font-size:44px;letter-spacing:.14em;line-height:1;margin:0;text-indent:.14em;animation:rise .8s .25s both}
+.tagline{margin:0;color:var(--muted);text-align:center;animation:rise .8s .4s both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
-/* otp */
-#otp{background:var(--bg);}
-.obox{width:100%;max-width:310px;background:var(--surf);border-radius:22px;padding:30px 22px;text-align:center;border:1px solid var(--border);}
-.obox h2{font-size:20px;font-weight:800;margin-bottom:6px;}
-.obox p{font-size:13px;color:var(--muted);margin-bottom:22px;}
-.ocards{display:flex;justify-content:center;gap:10px;margin-bottom:16px;cursor:pointer;}
-.ocard{width:54px;height:66px;border-radius:13px;background:var(--card);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;transition:transform .3s cubic-bezier(.2,.9,.3,1.3),background .2s,border-color .2s;}
-.ocard.filled{background:var(--accent);color:#fff;border-color:var(--accent);}
-.ocard.active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,108,247,.2);}
-.ohint{font-size:12px;color:var(--muted);margin-bottom:10px;}
-.ohint b{color:var(--accent);}
-.oresend{font-size:13px;color:var(--muted);}
-.oresend span{color:var(--text);font-weight:600;cursor:pointer;}
-#ohid{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;}
+/* ---------- steps ---------- */
+.stage{width:100%;display:grid}
+.step{grid-area:1/1;display:flex;flex-direction:column;gap:14px;transition:opacity .45s,transform .55s cubic-bezier(.2,.8,.2,1)}
+.step.hidden{opacity:0;transform:translateX(40px);pointer-events:none;visibility:hidden}
+.step.gone{opacity:0;transform:translateX(-40px);pointer-events:none;visibility:hidden}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px}
+.card h2{font-family:var(--f-display);font-size:22px;margin:0;font-weight:700}
+.card p{margin:0;color:var(--muted)}
+.field{position:relative}
+.field input{width:100%;height:54px;border-radius:16px;border:1.5px solid var(--line);background:var(--bg);padding:18px 16px 0 16px;font-size:16px;transition:border-color .25s,box-shadow .25s}
+.field label{position:absolute;left:16px;top:16px;color:var(--muted);pointer-events:none;transition:all .2s;transform-origin:left top}
+.field input:focus,.field input:not(:placeholder-shown){border-color:var(--accent)}
+.field input:focus{box-shadow:0 0 0 4px var(--accent-soft)}
+.field input:focus+label,.field input:not(:placeholder-shown)+label{transform:translateY(-10px) scale(.74);color:var(--accent)}
+.err{min-height:18px;margin:-6px 0 0;color:var(--danger);font-size:13px}
+.btn{height:52px;border-radius:16px;background:var(--fg);color:var(--bg);font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;overflow:hidden;transition:transform .15s,opacity .2s}
+.btn:active{transform:scale(.97)}
+.btn.accent{background:var(--accent);color:var(--accent-fg)}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--fg)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn .sheen{position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-120%);animation:sheen 3.2s 1s infinite}
+@keyframes sheen{to{transform:translateX(120%)}}
+.link{color:var(--muted);font-size:13px;text-align:center}
+.link b{color:var(--accent);font-weight:600}
 
-/* app */
-#app{position:fixed;inset:0;display:none;}
-#app.on{display:block;}
-.view{position:absolute;inset:0;display:none;flex-direction:column;background:var(--bg);}
-.view.on{display:flex;}
-
-/* topbar */
-.tb{display:flex;align-items:center;gap:10px;padding:13px 16px;padding-top:calc(13px + env(safe-area-inset-top,0px));background:var(--surf);border-bottom:1px solid var(--border);flex-shrink:0;}
-.tb-ttl{font-weight:700;font-size:16px;flex:1;}
-.tb-sub{font-size:11px;color:var(--muted);}
-.tb-btn{background:rgba(139,108,247,.15);border:none;color:var(--accent);border-radius:9px;padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer;}
-.backbtn{background:none;border:none;color:var(--accent);font-size:24px;cursor:pointer;line-height:1;padding:0 6px 0 0;}
-.av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--acc2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;}
-
-/* bot list */
-.lscroll{flex:1;overflow-y:auto;}
-.brow{display:flex;align-items:center;gap:13px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;}
-.brow:active{background:var(--surf);}
-.bav{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--acc2));color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-.binf{flex:1;min-width:0;}
-.bname{font-weight:600;font-size:15px;}
-.bdesc{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
-.emptyhint{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;padding:32px;text-align:center;}
-.fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--accent),var(--acc2));color:#fff;font-size:28px;cursor:pointer;box-shadow:0 4px 20px rgba(139,108,247,.45);}
-
-/* chat */
-.msgs{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:8px;background:var(--bg);}
-.bub{max-width:80%;padding:10px 14px;border-radius:16px;font-size:14.5px;line-height:1.45;}
-.bub.me{align-self:flex-end;background:var(--me);border-bottom-right-radius:4px;}
-.bub.bot{align-self:flex-start;background:var(--bot);border:1px solid var(--border);border-bottom-left-radius:4px;}
-.bt{display:block;font-size:10px;color:var(--muted);margin-top:4px;text-align:right;}
-.bub img{max-width:100%;border-radius:10px;display:block;margin-bottom:4px;cursor:pointer;}
-.bub audio{width:190px;max-width:100%;}
-.typind{align-self:flex-start;background:var(--bot);border:1px solid var(--border);padding:11px 14px;border-radius:16px;border-bottom-left-radius:4px;display:flex;gap:5px;}
-.typind span{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:db 1s infinite ease-in-out;}
-.typind span:nth-child(2){animation-delay:.15s;}.typind span:nth-child(3){animation-delay:.3s;}
-
-/* composer */
-.comp{display:flex;align-items:center;gap:6px;padding:9px 12px;padding-bottom:calc(9px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--border);background:var(--surf);flex-shrink:0;}
-.cinp{flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:22px;padding:11px 16px;font-size:14.5px;outline:none;}
-.cinp:focus{border-color:var(--accent);}
-.icbtn{width:38px;height:38px;border-radius:50%;border:none;background:var(--card);color:var(--muted);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.icbtn.rec{background:#e53935;color:#fff;animation:recP 1s infinite;}
-.sndbtn{width:40px;height:40px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:17px;cursor:pointer;flex-shrink:0;}
-@keyframes recP{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
-
-/* fullscreen foto */
-#imgFull{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:80;cursor:pointer;}
-#imgFull img{max-width:95%;max-height:90vh;border-radius:8px;}
-#imgFull.on{display:flex;}
-
-/* modal */
-.mbg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:60;padding:24px;}
-.mbg.on{display:flex;}
-.mbox{background:var(--surf);border-radius:18px;padding:24px;width:100%;max-width:340px;border:1px solid var(--border);max-height:85vh;overflow-y:auto;}
-.mbox h2{font-size:17px;font-weight:700;margin-bottom:4px;}
-.mbox .msub{font-size:13px;color:var(--muted);margin-bottom:20px;}
-.mfield{margin-bottom:14px;}
-.mfield label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;}
-.mfield input,.mfield textarea{width:100%;padding:11px 14px;border-radius:11px;border:1.5px solid var(--border);background:var(--card);font-size:14.5px;outline:none;resize:vertical;}
-.mfield input:focus,.mfield textarea:focus{border-color:var(--accent);}
-.macts{display:flex;gap:8px;margin-top:18px;}
-.mact{flex:1;padding:12px;border-radius:11px;border:1px solid var(--border);background:none;color:var(--text);font-size:14px;cursor:pointer;}
-.mact.go{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;}
+/* ---------- OTP ---------- */
+.otp-code{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--accent-soft);border:1px dashed var(--accent);animation:codeIn .6s cubic-bezier(.2,1.2,.3,1) both}
+.otp-code .lbl{font-size:12px;color:var(--muted);line-height:1.2}
+.otp-code .num{font-family:var(--f-mono);font-weight:700;font-size:26px;letter-spacing:.35em;color:var(--accent);margin-left:auto;margin-right:-.35em}
+.otp-code .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:blink 1.2s infinite}
+@keyframes codeIn{from{opacity:0;transform:translateY(-12px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes blink{50%{opacity:.25;transform:scale(.7)}}
+.otp{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:0;height:72px;transition:gap .6s cubic-bezier(.3,1.4,.4,1);margin-block:4px}
+.otp.split{gap:10px}
+.otp .cell{position:relative;display:grid;place-items:center;background:var(--bg);border:1.5px solid var(--line);font-family:var(--f-mono);font-size:30px;font-weight:700;
+  transition:border-radius .6s cubic-bezier(.3,1.4,.4,1),border-color .3s,background .3s,transform .6s cubic-bezier(.3,1.4,.4,1),box-shadow .3s;border-radius:0}
+.otp .cell:first-of-type{border-radius:20px 0 0 20px}
+.otp .cell:nth-of-type(4){border-radius:0 20px 20px 0}
+.otp .cell+.cell{border-left-width:0}
+.otp.split .cell{border-radius:18px;border-left-width:1.5px;transform:translateY(0)}
+.otp.split .cell:nth-of-type(1){animation:pop .5s .00s both}
+.otp.split .cell:nth-of-type(2){animation:pop .5s .06s both}
+.otp.split .cell:nth-of-type(3){animation:pop .5s .12s both}
+.otp.split .cell:nth-of-type(4){animation:pop .5s .18s both}
+@keyframes pop{0%{transform:scale(.7) translateY(10px)}60%{transform:scale(1.08) translateY(-6px)}100%{transform:none}}
+.otp .cell.active{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);z-index:1}
+.otp .cell .d{display:block;animation:digit .35s cubic-bezier(.2,1.5,.4,1)}
+@keyframes digit{from{transform:translateY(-14px) scale(.4);opacity:0}to{transform:none;opacity:1}}
+.otp .hint{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;pointer-events:none;transition:opacity .3s,transform .4s;z-index:2}
+.otp.split .hint,.otp.typed .hint{opacity:0;transform:scale(.9)}
+.otp input{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;z-index:3;cursor:pointer}
+.otp.wrong{animation:shake .5s}
+.otp.wrong .cell{border-color:var(--danger);color:var(--danger);background:color-mix(in srgb,var(--danger) 8%,var(--bg))}
+@keyframes shake{20%{transform:translateX(-12px)}40%{transform:translateX(10px)}60%{transform:translateX(-7px)}80%{transform:translateX(4px)}}
+.otp.ok{gap:0}
+.otp.ok .cell{border-color:var(--accent);background:var(--accent);color:var(--accent-fg);animation:none}
+.otp.ok .cell:first-of-type{border-radius:20px 0 0 20px}.otp.ok .cell:nth-of-type(4){border-radius:0 20px 20px 0}
+.otp.ok .cell:nth-of-type(2),.otp.ok .cell:nth-of-type(3){border-radius:0}
+.otp.ok .cell+.cell{border-left-width:0}
+.otp .check{position:absolute;inset:0;display:grid;place-items:center;z-index:4;pointer-events:none;opacity:0}
+.otp .check svg{width:40px;height:40px;stroke:var(--accent-fg);stroke-width:3.4;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:40;stroke-dashoffset:40}
+.otp.ok .check{opacity:1}.otp.ok .check svg{animation:draw .5s .55s forwards}
+.otp.ok .cell .d{animation:fade .35s forwards}
+@keyframes fade{to{opacity:0;transform:scale(.4)}}
+@keyframes draw{to{stroke-dashoffset:0}}
+.otp.ok{animation:squash .9s .1s}
+@keyframes squash{0%{transform:scale(1)}40%{transform:scale(.94,1.1)}70%{transform:scale(1.05,.95)}100%{transform:scale(1)}}
+.confetti{position:fixed;left:0;top:0;width:8px;height:8px;border-radius:2px;pointer-events:none;z-index:80;will-change:transform,opacity}
+.timer-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)}
+.timer-row button{color:var(--accent);font-weight:600}
+.timer-row button[disabled]{color:var(--muted);opacity:.6;cursor:default}
+.back{align-self:flex-start;display:flex;align-items:center;gap:4px;color:var(--muted);font-size:13px}
+.back .ico{width:18px;height:18px}
 </style>
-</head>
-<body>
+<style>
+/* ---------- chat ---------- */
+#chat{align-items:stretch}
+.chat-col{width:100%;max-width:820px;margin:0 auto;height:100%;display:flex;flex-direction:column;min-height:0}
+.topbar{display:flex;align-items:center;gap:2px;padding:max(10px,env(safe-area-inset-top,0px)) 0 10px;border-bottom:1px solid var(--line);flex:none}
+.topbar .who{min-width:0;flex:1;margin-left:8px;display:flex;flex-direction:column;line-height:1.15}
+.topbar .who b{white-space:nowrap;font-family:var(--f-display);font-size:18px;letter-spacing:.05em}
+.topbar .who span{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.topbar .who span i{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:blink 2s infinite}
+.iconbtn{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;color:var(--fg);transition:background .2s,transform .15s;flex:none;position:relative}
+.iconbtn:hover{background:var(--surface2)}.iconbtn:active{transform:scale(.88)}
+.iconbtn .badge{position:absolute;top:3px;right:2px;min-width:16px;height:16px;border-radius:8px;background:var(--accent);color:var(--accent-fg);font-size:10px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.iconbtn .badge:empty{display:none}
+.theme-ico .sun{display:none}
+:root[data-theme="dark"] .theme-ico .sun{display:block}:root[data-theme="dark"] .theme-ico .moon{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .theme-ico .sun{display:block}:root:not([data-theme="light"]) .theme-ico .moon{display:none}}
+.theme-ico.spin .ico{animation:spinTheme .6s cubic-bezier(.3,1.5,.4,1)}
+@keyframes spinTheme{from{transform:rotate(-200deg) scale(.3)}to{transform:none}}
 
-<div id="loading">
-  <div class="ldots"><span></span><span></span><span></span></div>
-  <p style="color:var(--muted);font-size:13px;">Memuat WOK…</p>
-</div>
+.msgs{flex:1;min-height:0;overflow-y:auto;padding:18px 2px 10px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
+.empty{margin:auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;max-width:420px;animation:rise .8s both}
+.empty h3{font-family:var(--f-display);font-size:26px;margin:6px 0 0}
+.empty p{margin:0;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:8px}
+.chip{padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13.5px;transition:transform .15s,border-color .2s}
+.chip:hover{border-color:var(--accent)}.chip:active{transform:scale(.95)}
+.msg{display:flex;flex-direction:column;max-width:86%;gap:4px;animation:msgIn .45s cubic-bezier(.2,1.1,.3,1) both}
+.msg.user{align-self:flex-end;align-items:flex-end;transform-origin:100% 100%}
+.msg.bot{align-self:flex-start;align-items:flex-start;transform-origin:0 100%}
+@keyframes msgIn{from{opacity:0;transform:translateY(18px) scale(.92)}to{opacity:1;transform:none}}
+.bubble{padding:11px 15px;border-radius:20px;overflow-wrap:anywhere;white-space:pre-wrap;min-width:0}
+.msg.user .bubble{background:var(--user-bg);color:var(--user-fg);border-bottom-right-radius:6px}
+.msg.bot .bubble{background:var(--bot-bg);color:var(--bot-fg);border:1px solid var(--line);border-bottom-left-radius:6px}
+.bubble code{font-family:var(--f-mono);font-size:13px;background:var(--surface2);padding:1px 5px;border-radius:6px}
+.bubble pre{margin:8px 0 0;padding:12px;border-radius:12px;background:var(--surface2);overflow-x:auto;font-family:var(--f-mono);font-size:13px;white-space:pre}
+.bubble pre code{background:none;padding:0}
+.bubble img{display:block;max-width:100%;border-radius:12px;margin-bottom:8px}
+.filechip{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,currentColor 12%,transparent);font-size:13px;margin-bottom:6px;max-width:100%}
+.filechip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.actions{display:flex;gap:2px;opacity:.55;transition:opacity .2s}
+.msg:hover .actions,.actions:focus-within{opacity:1}
+.actions button{width:30px;height:28px;border-radius:9px;display:grid;place-items:center;color:var(--muted);transition:color .2s,transform .2s}
+.actions button:active{transform:scale(.8)}
+.actions .ico{width:16px;height:16px}
+.actions .fav.on{color:#f0a418}.actions .fav.on .ico{fill:#f0a418;animation:star .5s cubic-bezier(.2,1.8,.4,1)}
+@keyframes star{from{transform:scale(.3) rotate(-90deg)}to{transform:none}}
+.typing{display:flex;gap:5px;padding:14px 16px}
+.typing i{width:8px;height:8px;border-radius:50%;background:var(--muted);animation:bounce 1.1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,60%,100%{transform:none;opacity:.5}30%{transform:translateY(-6px);opacity:1}}
+.notice{align-self:center;font-size:12.5px;color:var(--muted);background:var(--surface2);border-radius:999px;padding:6px 14px;text-align:center;animation:msgIn .4s both;max-width:92%}
 
-<!-- SPLASH -->
-<div class="scr gone" id="spl">
-  <svg class="s-logo" width="90" height="90" viewBox="0 0 100 100">
-    <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b6cf7"/><stop offset="1" stop-color="#d97359"/></linearGradient></defs>
-    <path d="M50 8C26.8 8 8 25.6 8 47.4c0 11.4 5 21.6 13 28.8L15 92l17.3-5.6c5.6 2.9 11.9 4.5 18.3 4.9H51.2c23.2 0 42-17.6 42-39.4C93.2 29.9 73.6 8 50 8z" fill="url(#lg)"/>
-    <text x="50" y="56" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="24" fill="white">WOK</text>
-  </svg>
-  <div class="s-name">WOK</div>
-  <div class="ldots" style="margin-top:24px;opacity:0;animation:fu .5s ease forwards .9s;"><span></span><span></span><span></span></div>
-</div>
+.composer{flex:none;padding:8px 0 max(12px,env(safe-area-inset-bottom,0px));position:relative}
+.attach-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}
+.attach-row:empty{display:none}
+.att{position:relative;flex:none;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px 30px 6px 6px;max-width:220px;animation:msgIn .3s both}
+.att img{width:42px;height:42px;object-fit:cover;border-radius:9px}
+.att .ft{width:42px;height:42px;border-radius:9px;background:var(--surface2);display:grid;place-items:center}
+.att span{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.att button{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:var(--surface2);display:grid;place-items:center}
+.att button .ico{width:12px;height:12px}
+.inputbar{display:flex;align-items:flex-end;gap:6px;background:var(--surface);border:1.5px solid var(--line);border-radius:26px;padding:6px;transition:border-color .25s,box-shadow .25s;box-shadow:var(--shadow)}
+.inputbar:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.inputbar textarea{flex:1;min-width:0;border:0;background:none;resize:none;max-height:140px;padding:10px 6px;font-size:16px;line-height:1.35;outline:none}
+.inputbar textarea::placeholder{color:var(--muted)}
+.inputbar .iconbtn{width:42px;height:42px;border-radius:50%}
+.send{background:var(--accent);color:var(--accent-fg)!important;transition:transform .2s,opacity .2s!important}
+.send:hover{background:var(--accent)!important}
+.send[disabled]{opacity:.35;transform:scale(.9)}
+.mic.rec{background:var(--danger);color:#fff;animation:recPulse 1.2s infinite}
+@keyframes recPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--danger) 55%,transparent)}100%{box-shadow:0 0 0 16px transparent}}
+.menu{position:absolute;left:0;bottom:calc(100% - 4px);background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:6px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-width:190px;transform-origin:0 100%;transition:opacity .2s,transform .25s cubic-bezier(.2,1.4,.4,1);z-index:5}
+.menu[hidden]{display:block!important;opacity:0;transform:scale(.8) translateY(10px);pointer-events:none;visibility:hidden}
+.menu button{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;text-align:left}
+.menu button:hover{background:var(--surface2)}
+.menu .ico{color:var(--accent)}
+.rec-bar{display:none;align-items:center;gap:10px;padding:0 12px;flex:1;color:var(--danger);font-weight:500}
+.rec-bar .wave{display:flex;align-items:center;gap:3px;height:24px}
+.rec-bar .wave i{width:3px;height:6px;background:var(--danger);border-radius:2px;animation:wave 0.9s ease-in-out infinite}
+.rec-bar .wave i:nth-child(2n){animation-delay:.15s}.rec-bar .wave i:nth-child(3n){animation-delay:.3s}.rec-bar .wave i:nth-child(5n){animation-delay:.45s}
+@keyframes wave{50%{height:22px}}
+.inputbar.recording textarea{display:none}.inputbar.recording .rec-bar{display:flex}
+.rec-bar .live{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-weight:400;font-size:14px}
+
+/* ---------- sheets ---------- */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .3s;z-index:40;backdrop-filter:blur(3px)}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-height:88%;background:var(--bg);border-radius:28px 28px 0 0;border:1px solid var(--line);border-bottom:0;
+  transform:translateY(105%);transition:transform .5s cubic-bezier(.2,.9,.2,1);z-index:41;display:flex;flex-direction:column;
+  padding:10px max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));margin-inline:auto;max-width:640px}
+.sheet.on{transform:none}
+.grab{width:42px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px;flex:none}
+.sheet h3{font-family:var(--f-display);font-size:21px;margin:0 0 4px}
+.sheet .sub{color:var(--muted);margin:0 0 14px;font-size:14px}
+.sheet .body{overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:10px;padding-bottom:4px}
+.fav-item{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px;display:flex;gap:10px;animation:msgIn .4s both}
+.fav-item p{margin:0;flex:1;min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+.fav-item small{display:block;color:var(--muted);margin-top:4px}
+.empty-note{text-align:center;color:var(--muted);padding:30px 10px}
+.faq{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.faq button{width:100%;text-align:left;padding:13px 14px;display:flex;justify-content:space-between;gap:10px;font-weight:500}
+.faq .ans{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s}
+.faq .ans>div{overflow:hidden;color:var(--muted);padding:0 14px}
+.faq.open .ans{grid-template-rows:1fr}.faq.open .ans>div{padding-bottom:13px}
+.faq .ico{transition:transform .3s}.faq.open .ico{transform:rotate(180deg)}
+.cs-box{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.cs-log{display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto}
+.cs-log .msg{max-width:92%}
+.cs-row{display:flex;gap:8px}
+.cs-row input{flex:1;min-width:0;height:44px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);padding:0 12px;font-size:16px}
+.cs-row button{width:44px;height:44px;border-radius:14px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center}
+.contact{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:14px}
+.contact b{font-family:var(--f-mono);font-size:13px;overflow-wrap:anywhere}
+.contact button{color:var(--accent);font-weight:600;font-size:13px}
+.set-field{display:flex;flex-direction:column;gap:6px}
+.set-field label{font-size:13px;color:var(--muted)}
+.set-field input,.set-field select{height:46px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);padding:0 12px;font-size:16px;width:100%}
+.warn{font-size:12.5px;color:var(--muted);background:var(--surface2);padding:10px 12px;border-radius:12px}
+
+/* ---------- call ---------- */
+.call{position:fixed;inset:0;z-index:60;background:#050606;color:#f1f2ee;display:flex;flex-direction:column;align-items:center;
+  padding:max(24px,env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));
+  opacity:0;pointer-events:none;transform:scale(1.06);transition:opacity .45s,transform .6s cubic-bezier(.2,.9,.2,1)}
+.call.on{opacity:1;pointer-events:auto;transform:none}
+.call .who{margin-top:4vh;text-align:center}
+.call .who h2{font-family:var(--f-display);font-size:30px;margin:0;letter-spacing:.08em}
+.call .who p{margin:4px 0 0;color:#9aa09c;font-family:var(--f-mono);font-size:14px}
+.orb-wrap{flex:1;display:grid;place-items:center;width:100%;min-height:0}
+.orb{position:relative;width:min(56vw,230px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7bf2dc,#0a9f86 55%,#04403a);box-shadow:0 0 80px rgba(47,211,180,.45);transition:transform .15s;animation:breathe 3.5s ease-in-out infinite}
+.orb::before,.orb::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(47,211,180,.6);animation:ring 2.6s ease-out infinite}
+.orb::after{animation-delay:1.3s}
+.call[data-state="listening"] .orb{animation:breathe 1.6s ease-in-out infinite}
+.call[data-state="thinking"] .orb{animation:thinkSpin 1.2s linear infinite;background:conic-gradient(from 0deg,#0a9f86,#8a7cff,#ffb24a,#0a9f86)}
+.call[data-state="thinking"] .orb::before,.call[data-state="thinking"] .orb::after{display:none}
+.call[data-state="speaking"] .orb{animation:speak .5s ease-in-out infinite alternate}
+@keyframes breathe{50%{transform:scale(1.07)}}
+@keyframes thinkSpin{to{transform:rotate(360deg) scale(.92)}}
+@keyframes speak{from{transform:scale(.96)}to{transform:scale(1.12)}}
+.call .status{min-height:24px;color:#cfd4d0;text-align:center;font-size:15px}
+.call .caption{min-height:66px;max-width:520px;text-align:center;color:#9aa09c;font-size:14px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;margin:6px 0 14px}
+.call .typebox{display:none;width:100%;max-width:420px;gap:8px;margin-bottom:14px}
+.call .typebox.on{display:flex}
+.call .typebox input{flex:1;min-width:0;height:46px;border-radius:23px;border:1px solid #2a2f2d;background:#121514;color:#fff;padding:0 16px;font-size:16px}
+.call .typebox button{width:46px;height:46px;border-radius:50%;background:#2fd3b4;color:#04201a;display:grid;place-items:center}
+.call .ctrls{display:flex;gap:22px;align-items:center}
+.call .cbtn{width:62px;height:62px;border-radius:50%;background:#1b1f1e;display:grid;place-items:center;transition:transform .15s,background .2s}
+.call .cbtn:active{transform:scale(.88)}
+.call .cbtn.on{background:#f1f2ee;color:#050606}
+.call .cbtn.end{background:#e5392f;width:72px;height:72px;transform:rotate(135deg)}
+.call .cbtn.end:active{transform:rotate(135deg) scale(.88)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
 
 <!-- LOGIN -->
-<div class="scr gone" id="login">
-  <div class="lbox">
-    <svg width="52" height="52" viewBox="0 0 100 100" style="margin:0 auto 16px;display:block;">
-      <defs><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b6cf7"/><stop offset="1" stop-color="#d97359"/></linearGradient></defs>
-      <path d="M50 8C26.8 8 8 25.6 8 47.4c0 11.4 5 21.6 13 28.8L15 92l17.3-5.6c5.6 2.9 11.9 4.5 18.3 4.9H51.2c23.2 0 42-17.6 42-39.4C93.2 29.9 73.6 8 50 8z" fill="url(#lg2)"/>
-      <text x="50" y="56" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="24" fill="white">WOK</text>
-    </svg>
-    <h1>Masuk ke WOK</h1>
-    <p>Pakai username, tanpa ribet</p>
-    <div class="errt" id="lerr">Username minimal 3 karakter</div>
-    <input class="inp" id="uninp" type="text" placeholder="Username kamu" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()"/>
-    <button class="pbtn" onclick="doLogin()">Masuk →</button>
-  </div>
-</div>
-
-<!-- OTP -->
-<div class="scr gone" id="otp">
-  <input id="ohid" type="number" inputmode="numeric" maxlength="4" autocomplete="one-time-code"/>
-  <div class="obox">
-    <h2>Verifikasi</h2>
-    <p id="odesc">Masukkan kode 4-digit</p>
-    <div class="ocards" id="ocards">
-      <div class="ocard" id="oc0"></div><div class="ocard" id="oc1"></div>
-      <div class="ocard" id="oc2"></div><div class="ocard" id="oc3"></div>
-    </div>
-    <div class="ohint">Ketuk kotak lalu ketik — <b id="onum"></b> adalah kodenya</div>
-    <div class="errt" id="oerr" style="text-align:center;"></div>
-    <div class="oresend">Belum dapat? <span onclick="newOtp()">Kirim ulang</span></div>
-  </div>
-</div>
-
-<!-- APP -->
-<div id="app">
-  <!-- Daftar bot -->
-  <div class="view on" id="vList">
-    <div class="tb">
-      <div class="av" id="myAv">?</div>
-      <div><div class="tb-ttl" id="myUn">WOK</div><div class="tb-sub">Pilih bot AI</div></div>
-      <button class="tb-btn" onclick="doLogout()">Keluar</button>
-    </div>
-    <div class="lscroll" id="botList">
-      <div class="emptyhint" id="lempty" style="display:none">Belum ada bot kustom.<br>Ketuk + untuk membuat.</div>
-    </div>
-    <button class="fab" onclick="openModal()">+</button>
-  </div>
-
-  <!-- Chat -->
-  <div class="view" id="vChat">
-    <div class="tb">
-      <button class="backbtn" onclick="toList()">‹</button>
-      <div class="av" id="chatAv"></div>
-      <div><div class="tb-ttl" id="chatTitle"></div><div class="tb-sub" id="chatSub">OpenAI · Online</div></div>
-    </div>
-    <div class="msgs" id="msgBox"></div>
-    <div class="comp">
-      <input type="file" id="photoin" accept="image/*" style="display:none" onchange="doPhoto(this)"/>
-      <button class="icbtn" onclick="document.getElementById('photoin').click()" title="Foto">📷</button>
-      <button class="icbtn" id="micbtn" onclick="toggleMic()" title="Suara">🎤</button>
-      <input class="cinp" id="msginp" type="text" placeholder="Ketik pesan…" onkeydown="if(event.key==='Enter')doSend()"/>
-      <button class="sndbtn" onclick="doSend()">➤</button>
+<main id="login" class="screen">
+  <div class="aurora"><i></i><i></i><i></i></div><div class="grain"></div>
+  <div class="login-wrap">
+    <div class="logo" aria-hidden="true"></div>
+    <h1 class="brand">WOK</h1>
+    <p class="tagline">Asisten AI yang siap ngobrol kapan saja.</p>
+    <div class="stage">
+      <section id="step-user" class="step">
+        <form class="card" id="userForm" autocomplete="off">
+          <h2>Masuk</h2>
+          <p>Cukup tulis username. Kami kirim kode verifikasi ke layar ini.</p>
+          <div class="field">
+            <input id="username" name="username" placeholder=" " maxlength="20" autocapitalize="none" autocomplete="off" spellcheck="false">
+            <label for="username">Username</label>
+          </div>
+          <p class="err" id="userErr" role="alert"></p>
+          <button class="btn" type="submit"><span class="sheen"></span><span>Lanjut</span><svg class="ico" data-i="arrow"></svg></button>
+        </form>
+      </section>
+      <section id="step-otp" class="step hidden">
+        <div class="card">
+          <button class="back" id="backBtn" type="button"><svg class="ico" data-i="back"></svg>Ganti username</button>
+          <h2>Verifikasi kode</h2>
+          <p id="otpFor">Masukkan 4 digit kode di bawah.</p>
+          <div class="otp-code" id="otpCodeBox">
+            <span class="dot"></span>
+            <span class="lbl">Kode OTP kamu<br>berlaku 2 menit</span>
+            <span class="num" id="otpShown">----</span>
+          </div>
+          <div class="otp" id="otp">
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="hint">Ketuk, lalu ketik kodenya</div>
+            <div class="check"><svg viewBox="0 0 40 40"><path d="M8 21 L17 29 L32 11"/></svg></div>
+            <input id="otpInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code" aria-label="Kode OTP 4 digit">
+          </div>
+          <p class="err" id="otpErr" role="alert"></p>
+          <div class="timer-row"><span id="otpTimer">Kode baru dalam 0:30</span><button id="resend" type="button" disabled>Kirim ulang</button></div>
+          <button class="btn ghost" id="autofill" type="button">Isi otomatis</button>
+        </div>
+      </section>
     </div>
   </div>
-</div>
+</main>
 
-<!-- Fullscreen foto -->
-<div id="imgFull" onclick="this.classList.remove('on')"><img id="imgFull_img" src="" alt=""/></div>
-
-<!-- Modal buat bot -->
-<div class="mbg" id="modal">
-  <div class="mbox">
-    <h2>Buat Bot Baru 🤖</h2>
-    <p class="msub">Bot ini ditenagai OpenAI — bisa jawab apa aja sesuai kepribadian yang kamu atur.</p>
-    <div class="errt" id="merr"></div>
-    <div class="mfield"><label>Nama bot</label><input id="mname" placeholder="misal: Kawan Santai"/></div>
-    <div class="mfield"><label>Kepribadian / instruksi</label>
-      <textarea id="mpersona" rows="4" placeholder="misal: Kamu teman ngobrol santai, jawab singkat dan suka bercanda pakai bahasa gaul Indonesia."></textarea>
-    </div>
-    <div class="macts">
-      <button class="mact" onclick="closeModal()">Batal</button>
-      <button class="mact go" onclick="saveBot()">Simpan</button>
+<!-- CHAT -->
+<main id="chat" class="screen" hidden>
+  <div class="chat-col">
+    <header class="topbar">
+      <div class="logo sm" aria-hidden="true"></div>
+      <div class="who"><b>WOK-BOT</b><span><i></i><em id="whoSub" style="font-style:normal">Online</em></span></div>
+      <button class="iconbtn" id="callBtn" aria-label="Telepon WOK-BOT"><svg class="ico" data-i="phone"></svg></button>
+      <button class="iconbtn" id="favBtn" aria-label="Pesan favorit"><svg class="ico" data-i="star"></svg><span class="badge" id="favCount"></span></button>
+      <button class="iconbtn" id="csBtn" aria-label="Customer Service"><svg class="ico" data-i="headset"></svg></button>
+      <button class="iconbtn theme-ico" id="themeBtn" aria-label="Ganti tema"><svg class="ico moon" data-i="moon"></svg><svg class="ico sun" data-i="sun"></svg></button>
+      <button class="iconbtn" id="setBtn" aria-label="Pengaturan"><svg class="ico" data-i="gear"></svg></button>
+    </header>
+    <div class="msgs" id="msgs" aria-live="polite"></div>
+    <div class="composer">
+      <div class="menu" id="attMenu" hidden>
+        <button id="pickPhoto"><svg class="ico" data-i="image"></svg>Foto</button>
+        <button id="pickFile"><svg class="ico" data-i="file"></svg>File</button>
+      </div>
+      <div class="attach-row" id="attRow"></div>
+      <div class="inputbar" id="inputbar">
+        <button class="iconbtn" id="attBtn" aria-label="Lampirkan foto atau file"><svg class="ico" data-i="plus"></svg></button>
+        <textarea id="prompt" rows="1" placeholder="Tanya apa saja ke WOK-BOT"></textarea>
+        <div class="rec-bar"><div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="live" id="recLive">Mendengarkan...</span></div>
+        <button class="iconbtn mic" id="micBtn" aria-label="Rekam suara"><svg class="ico" data-i="mic"></svg></button>
+        <button class="iconbtn send" id="sendBtn" aria-label="Kirim" disabled><svg class="ico" data-i="send"></svg></button>
+      </div>
     </div>
   </div>
-</div>
+</main>
+<input type="file" id="photoIn" accept="image/*" multiple hidden>
+<input type="file" id="fileIn" accept=".txt,.md,.csv,.json,.js,.ts,.py,.html,.css,.log,.xml,.yml,.yaml,text/*" multiple hidden>
 
+<!-- SHEETS -->
+<div class="scrim" id="scrim"></div>
+<section class="sheet" id="favSheet" aria-label="Pesan favorit">
+  <div class="grab"></div><h3>Pesan Favorit</h3><p class="sub">Pesan yang kamu beri bintang tersimpan di sini.</p>
+  <div class="body" id="favList"></div>
+</section>
+<section class="sheet" id="csSheet" aria-label="Customer Service">
+  <div class="grab"></div><h3>Customer Service</h3><p class="sub">Pilih topik atau tulis pertanyaan ke tim WOK.</p>
+  <div class="body">
+    <div id="faqList" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div class="cs-box">
+      <div class="cs-log" id="csLog"></div>
+      <form class="cs-row" id="csForm"><input id="csInput" placeholder="Tulis pesan ke CS" autocomplete="off"><button type="submit" aria-label="Kirim ke CS"><svg class="ico" data-i="send"></svg></button></form>
+    </div>
+    <div class="contact"><span>Email CS<br><b>cs@wok.app</b></span><button data-copy="cs@wok.app">Salin</button></div>
+    <div class="contact"><span>Jam layanan<br><b>Setiap hari, 08.00 - 22.00 WIB</b></span></div>
+  </div>
+</section>
+<section class="sheet" id="setSheet" aria-label="Pengaturan">
+  <div class="grab"></div><h3>Pengaturan</h3><p class="sub">Pilih Groq, OpenAI, atau Gemini, lalu tempel API key kamu.</p>
+  <div class="body">
+    <div class="set-field"><label for="provider">Penyedia AI</label>
+      <select id="provider"><option value="groq">Groq</option><option value="openai">OpenAI (ChatGPT)</option><option value="gemini">Google Gemini</option></select></div>
+    <div class="set-field"><label for="apiKey" id="keyLbl">API key</label><input id="apiKey" type="password" placeholder="Tempel API key di sini" autocomplete="off" spellcheck="false"></div>
+    <div class="set-field"><label for="model">Model</label><input id="model" list="modelList" autocomplete="off" spellcheck="false"><datalist id="modelList"></datalist></div>
+    <div class="set-field"><label for="baseUrl">Alamat API (opsional, untuk proxy sendiri)</label><input id="baseUrl" autocomplete="off" spellcheck="false"></div>
+    <p class="warn">Key disimpan hanya di browser HP kamu. Kalau halaman ini dibagikan ke orang lain, jangan isi key di perangkat yang bukan milikmu.</p>
+    <button class="btn accent" id="saveSet">Simpan</button>
+    <button class="btn ghost" id="clearChat">Hapus riwayat chat</button>
+    <button class="btn ghost" id="logout">Keluar</button>
+  </div>
+</section>
+
+<!-- CALL -->
+<section class="call" id="call" data-state="idle" aria-label="Telepon WOK-BOT">
+  <div class="who"><h2>WOK-BOT</h2><p id="callTime">00:00</p></div>
+  <div class="orb-wrap"><div class="orb"></div></div>
+  <div class="status" id="callStatus">Menghubungkan...</div>
+  <div class="caption" id="callCap"></div>
+  <form class="typebox" id="callType"><input id="callText" placeholder="Ketik jawabanmu" autocomplete="off"><button type="submit" aria-label="Kirim"><svg class="ico" data-i="send"></svg></button></form>
+  <div class="ctrls">
+    <button class="cbtn" id="callMute" aria-label="Bisukan mikrofon"><svg class="ico" data-i="mic"></svg></button>
+    <button class="cbtn end" id="callEnd" aria-label="Akhiri panggilan"><svg class="ico" data-i="phone"></svg></button>
+    <button class="cbtn" id="callKeys" aria-label="Ketik pesan"><svg class="ico" data-i="keyboard"></svg></button>
+  </div>
+</section>
 <script>
-// ═══ CONFIG ═══════════════════════════════════════
-const WOK_BOT = {
-  id:'__wok__',
-  name:'Wok-Bot 🤖',
-  persona:'Kamu adalah Wok-Bot, asisten AI dari aplikasi WOK. Jawab dengan ramah, singkat dan padat. Pakai bahasa Indonesia santai, boleh campur sedikit slang gaul. Kalau tidak tahu, jujur saja. Jangan terlalu panjang.'
+(function(){
+"use strict";
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var sleep=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+function load(k,d){try{var v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function drop(k){try{localStorage.removeItem(k)}catch(e){}}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+var reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- ikon & logo ---------- */
+var IC={
+ arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',back:'<path d="M15 6l-6 6 6 6"/>',
+ phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+ star:'<path d="M12 3.5l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17.3 6.6 20.2l1.1-6.1L3.2 9.9l6.1-.8z"/>',
+ headset:'<path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/><path d="M19 20c0 1.5-2 2-5 2"/>',
+ moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.3 3h-4l-.4 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5a7 7 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.4 2.7h4l.4-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+ send:'<path d="M4 12l16-8-6 16-3-7z"/>',image:'<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/>',
+ file:'<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/>',
+ x:'<path d="M6 6l12 12M18 6L6 18"/>',copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>',
+ chev:'<path d="M6 9l6 6 6-6"/>',keyboard:'<rect x="2.5" y="6" width="19" height="12" rx="3"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
+ trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'
 };
+function icon(n,cls){return '<svg class="ico '+(cls||'')+'" viewBox="0 0 24 24">'+IC[n]+'</svg>'}
+function paintIcons(root){$$("svg[data-i]",root).forEach(function(s){s.setAttribute("viewBox","0 0 24 24");s.innerHTML=IC[s.getAttribute("data-i")]||"";s.removeAttribute("data-i")})}
+var LOGO='<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><g class="steam" stroke-width="2.6"><path d="M23 6c-3 3 3 5 0 9"/><path d="M32 4c-3 3 3 6 0 10"/><path d="M41 6c-3 3 3 5 0 9"/></g><g class="bowl"><path d="M8 28h48c0 14-10 24-24 24S8 42 8 28z" fill="currentColor" stroke="none"/><path d="M56 31l6-4" stroke-width="4"/></g><path d="M22 57h20" stroke-width="3.4"/></svg>';
+$$(".logo").forEach(function(l){l.innerHTML=LOGO});
+paintIcons(document);
 
-// ═══ STATE ════════════════════════════════════════
-let $db = null;
-let curBot = null;
-let username = '';
-let _mr = null, _chunks = [], _mstream = null;
-
-// ═══ UTILS ════════════════════════════════════════
-const $  = id => document.getElementById(id);
-const esc = s => { const d=document.createElement('div');d.textContent=s;return d.innerHTML; };
-const ts  = () => { const d=new Date(); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); };
-const show = id => { $$(id).classList.remove('gone','off'); };
-const hide = id => { $$(id).classList.add('gone'); };
-const $$ = id => document.getElementById(id);
-
-function lsGet(k) { try { return JSON.parse(localStorage.getItem(k)||'null'); } catch(e) { return null; } }
-function lsSet(k,v) { try { localStorage.setItem(k,JSON.stringify(v)); } catch(e) {} }
-
-// ═══ INIT ═════════════════════════════════════════
-(async () => {
-  // Load capabilities
-  try { if (typeof claude !== 'undefined') $db = await claude.use('db'); } catch(e) {}
-
-  // Cek apakah sudah punya username
-  let savedUser = lsGet('wok_user');
-  if (!savedUser && $db) {
-    try {
-      const p = await $db.collection('data/users/me').doc('profile').get();
-      if (p?.username) savedUser = p.username;
-    } catch(e) {}
-  }
-
-  $$('loading').style.display = 'none';
-
-  if (savedUser) {
-    username = savedUser;
-    enterApp();
-  } else {
-    showSplash();
-  }
-})();
-
-// ═══ SPLASH ═══════════════════════════════════════
-function showSplash() {
-  show('spl');
-  setTimeout(() => {
-    hide('spl');
-    show('login');
-    setTimeout(() => $$('uninp').focus(), 100);
-  }, 2200);
-}
-
-// ═══ LOGIN ════════════════════════════════════════
-function doLogin() {
-  const u = $$('uninp').value.trim();
-  if (u.length < 3) { $$('lerr').style.display='block'; return; }
-  $$('lerr').style.display='none';
-  username = u;
-  hide('login');
-  showOtp(u);
-}
-
-// ═══ OTP ══════════════════════════════════════════
-let _ocode='', _ouser='';
-function showOtp(u) {
-  _ouser = u;
-  newOtp();
-  $$('odesc').textContent = 'Masuk sebagai @'+u;
-  show('otp');
-  setTimeout(() => { $$('ohid').focus(); }, 100);
-}
-function newOtp() {
-  _ocode = String(Math.floor(1000+Math.random()*9000));
-  $$('onum').textContent = _ocode;
-  $$('ohid').value = '';
-  $$('oerr').style.display='none';
-  paintCards('');
-}
-function paintCards(v) {
-  const ANG=[-11,-4,4,11];
-  for(let i=0;i<4;i++){
-    const c=$$('oc'+i), ch=v[i]||'';
-    c.textContent=ch;
-    c.classList.toggle('filled',!!ch);
-    c.classList.toggle('active',i===v.length);
-    c.style.transform=ch?`translateY(-6px) rotate(${ANG[i]}deg)`:'translateY(0) rotate(0)';
-  }
-}
-
-$$('ocards').addEventListener('click',()=>$$('ohid').focus());
-$$('ohid').addEventListener('input',function(){
-  const v=this.value.replace(/\D/g,'').slice(0,4);
-  this.value=v; paintCards(v);
-  if(v.length===4){
-    if(v===_ocode){
-      hide('otp');
-      lsSet('wok_user', _ouser);
-      if($db) $db.collection('data/users/me').doc('profile').set({username:_ouser}).catch(()=>{});
-      enterApp();
-    } else {
-      $$('oerr').textContent='Kode salah, coba lagi';
-      $$('oerr').style.display='block';
-      setTimeout(()=>{ this.value=''; paintCards(''); $$('oerr').style.display='none'; },900);
-    }
-  }
+/* ---------- tema ---------- */
+function effTheme(){var t=document.documentElement.getAttribute("data-theme");if(t)return t;return matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}
+var savedTheme=load("wok.theme",null);if(savedTheme)document.documentElement.setAttribute("data-theme",savedTheme);
+$("#themeBtn").addEventListener("click",function(){
+  var n=effTheme()==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);save("wok.theme",n);
+  var b=$("#themeBtn");b.classList.remove("spin");void b.offsetWidth;b.classList.add("spin");
 });
 
-// ═══ APP ══════════════════════════════════════════
-function enterApp() {
-  $$('app').classList.add('on');
-  $$('myUn').textContent='@'+username;
-  $$('myAv').textContent=username[0].toUpperCase();
-  openBot(WOK_BOT); // langsung ke Wok-Bot
+/* ---------- salin ---------- */
+function copyText(t){
+  var fb=function(){var a=document.createElement("textarea");a.value=t;a.style.cssText="position:fixed;opacity:0";document.body.appendChild(a);a.select();try{document.execCommand("copy")}catch(e){}a.remove()};
+  try{navigator.clipboard.writeText(t).catch(fb)}catch(e){fb()}
 }
+document.addEventListener("click",function(e){var b=e.target.closest("[data-copy]");if(b){copyText(b.getAttribute("data-copy"));var o=b.textContent;b.textContent="Tersalin";setTimeout(function(){b.textContent=o},1400)}});
 
-async function doLogout() {
-  lsSet('wok_user', null);
-  if($db) $db.collection('data/users/me').doc('profile').delete().catch(()=>{});
-  username=''; curBot=null;
-  $$('app').classList.remove('on');
-  $$('uninp').value='';
-  showSplash();
-}
+/* ---------- LOGIN: username ---------- */
+var user=load("wok.user",null);
+var stepUser=$("#step-user"),stepOtp=$("#step-otp");
+var otpCode="",otpExp=0,tickT=null,locked=false;
+$("#userForm").addEventListener("submit",function(e){
+  e.preventDefault();
+  var v=$("#username").value.trim();
+  if(!/^[A-Za-z0-9_.]{3,20}$/.test(v)){var er=$("#userErr");er.textContent="Username 3-20 karakter: huruf, angka, titik, atau garis bawah.";$("#username").focus();return}
+  $("#userErr").textContent="";user={name:v};
+  $("#otpFor").textContent="Halo, "+v+". Masukkan 4 digit kode di bawah.";
+  stepUser.classList.add("gone");stepOtp.classList.remove("hidden");
+  newOtp(true);
+});
+$("#backBtn").addEventListener("click",function(){
+  clearInterval(tickT);stepOtp.classList.add("hidden");stepUser.classList.remove("gone");resetOtpUI();
+});
 
-// ═══ BOT LIST ════════════════════════════════════
-async function toList() {
-  setView('vList');
-  await renderList();
-}
-
-async function renderList() {
-  const list=$$('botList');
-  list.querySelectorAll('.brow').forEach(el=>el.remove());
-  const bots=[WOK_BOT];
-
-  // Load dari db
-  if($db){
-    try{
-      const snap=await $db.collection('bots').get();
-      snap.forEach(doc=>bots.push({id:doc.id,...doc.data()}));
-    }catch(e){}
-  }
-  // Load dari localStorage
-  const local=lsGet('wok_bots')||[];
-  local.forEach(b=>{ if(!bots.find(x=>x.id===b.id)) bots.push(b); });
-
-  $$('lempty').style.display=bots.length<=1?'flex':'none';
-
-  bots.forEach(b=>{
-    const row=document.createElement('div');
-    row.className='brow'; row.onclick=()=>openBot(b);
-    row.innerHTML=`<div class="bav">${b.name[0].toUpperCase()}</div><div class="binf"><div class="bname">${esc(b.name)}</div><div class="bdesc">${esc((b.persona||'').slice(0,55))}</div></div>`;
-    list.insertBefore(row,$$('lempty'));
+/* ---------- LOGIN: OTP ---------- */
+var otpEl=$("#otp"),otpIn=$("#otpInput"),cells=$$(".cell",otpEl);
+function resetOtpUI(){otpIn.value="";renderCells();otpEl.classList.remove("split","typed","wrong","ok");$("#otpErr").textContent="";locked=false;otpIn.readOnly=false}
+function renderCells(){
+  var v=otpIn.value;
+  cells.forEach(function(c,i){
+    var ch=v[i];var cur=c.firstChild&&c.firstChild.textContent;
+    if(ch){if(cur!==ch){c.innerHTML='<span class="d">'+ch+'</span>'}}else c.innerHTML="";
+    c.classList.toggle("active",document.activeElement===otpIn&&i===Math.min(v.length,3));
   });
+  otpEl.classList.toggle("typed",v.length>0);
 }
-
-// ═══ BUKA CHAT BOT ════════════════════════════════
-async function openBot(b) {
-  curBot=b;
-  $$('chatAv').textContent=b.name[0].toUpperCase();
-  $$('chatTitle').textContent=b.name;
-  setView('vChat');
-  await renderMsgs();
-  setTimeout(()=>$$('msginp').focus(),300);
-}
-
-// ═══ PESAN ════════════════════════════════════════
-async function getMsgs(){
-  if($db){
-    try{
-      const doc=await $db.collection('data/users/me').doc('chat_'+curBot.id).get();
-      return doc?.messages||[];
-    }catch(e){}
+async function newOtp(first){
+  resetOtpUI();
+  var c="";do{c=String(Math.floor(1000+Math.random()*9000))}while(/^(\d)\1+$/.test(c)||c==="1234");
+  otpCode=c;otpExp=Date.now()+120000;
+  var box=$("#otpCodeBox"),num=$("#otpShown");
+  box.style.animation="none";void box.offsetWidth;box.style.animation="";
+  // efek acak lalu mengunci satu per satu
+  for(var i=0;i<4;i++){
+    for(var k=0;k<(reduce?1:7);k++){var s="";for(var j=0;j<4;j++)s+=j<i?c[j]:Math.floor(Math.random()*10);num.textContent=s;await sleep(40)}
   }
-  return lsGet('wok_m_'+curBot.id)||[];
+  num.textContent=c;
+  startResendTimer(30);
 }
-async function putMsgs(msgs){
-  if($db){
-    try{ await $db.collection('data/users/me').doc('chat_'+curBot.id).set({messages:msgs}); return; }catch(e){}
+function startResendTimer(sec){
+  clearInterval(tickT);var left=sec,t=$("#otpTimer"),b=$("#resend");b.disabled=true;
+  var f=function(){t.textContent=left>0?"Kode baru dalam 0:"+String(left).padStart(2,"0"):"Belum masuk? Minta kode baru.";if(left<=0){b.disabled=false;clearInterval(tickT)}left--};
+  f();tickT=setInterval(f,1000);
+}
+$("#resend").addEventListener("click",function(){newOtp()});
+$("#autofill").addEventListener("click",async function(){
+  if(locked)return;otpIn.value="";renderCells();
+  for(var i=0;i<4;i++){otpIn.value+=otpCode[i];onOtpInput();await sleep(260)}
+});
+otpIn.addEventListener("focus",renderCells);otpIn.addEventListener("blur",renderCells);
+otpIn.addEventListener("input",onOtpInput);
+otpEl.addEventListener("click",function(){otpIn.focus()});
+function onOtpInput(){
+  if(locked)return;
+  otpIn.value=otpIn.value.replace(/\D/g,"").slice(0,4);
+  var n=otpIn.value.length;
+  if(n>0)otpEl.classList.add("split");else otpEl.classList.remove("split");
+  $("#otpErr").textContent="";
+  renderCells();
+  if(n===4)setTimeout(verifyOtp,380);
+}
+async function verifyOtp(){
+  if(locked||otpIn.value.length<4)return;
+  if(Date.now()>otpExp){$("#otpErr").textContent="Kode sudah kedaluwarsa. Minta kode baru.";otpIn.value="";renderCells();otpEl.classList.remove("split");return}
+  if(otpIn.value===otpCode){
+    locked=true;otpIn.blur();otpIn.readOnly=true;clearInterval(tickT);
+    otpEl.classList.remove("split");           // 4 kotak menyatu kembali jadi satu
+    otpEl.classList.add("ok");
+    try{navigator.vibrate&&navigator.vibrate(30)}catch(e){}
+    await sleep(700);burst();
+    await sleep(1300);
+    save("wok.user",user);enterChat();
+  }else{
+    otpEl.classList.add("wrong");$("#otpErr").textContent="Kode salah. Cek kode di atas lalu coba lagi.";
+    try{navigator.vibrate&&navigator.vibrate([40,40,40])}catch(e){}
+    await sleep(650);otpEl.classList.remove("wrong");otpIn.value="";renderCells();
   }
-  lsSet('wok_m_'+curBot.id, msgs);
 }
-
-async function renderMsgs(){
-  $$('msgBox').innerHTML='';
-  const msgs=await getMsgs();
-  msgs.forEach(m=>addBubble(m));
-  const b=$$('msgBox'); b.scrollTop=b.scrollHeight;
-}
-
-function addBubble(m){
-  const box=$$('msgBox');
-  const b=document.createElement('div');
-  b.className='bub '+(m.from==='me'?'me':'bot');
-  if(m.type==='photo'){
-    b.innerHTML=`<img src="${m.data}" loading="lazy" onclick="openImg('${m.data.slice(0,50)}',event)"><span class="bt">${m.time}</span>`;
-    b.querySelector('img').src=m.data;
-    b.querySelector('img').onclick=e=>{$$('imgFull_img').src=m.data;$$('imgFull').classList.add('on');};
-  } else if(m.type==='voice'){
-    b.innerHTML=`<audio controls src="${m.data}"></audio><span class="bt">${m.time}</span>`;
-  } else {
-    b.innerHTML=esc(m.text).replace(/\n/g,'<br>')+`<span class="bt">${m.time}</span>`;
+function burst(){
+  if(reduce)return;
+  var r=otpEl.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+  var cols=["#2fd3b4","#ffb24a","#8a7cff","#ff6b8a","#ffffff"];
+  for(var i=0;i<46;i++){
+    var p=document.createElement("i");p.className="confetti";p.style.background=cols[i%cols.length];
+    if(i%3===0)p.style.borderRadius="50%";document.body.appendChild(p);
+    var a=Math.random()*Math.PI*2,d=90+Math.random()*180,dx=Math.cos(a)*d,dy=Math.sin(a)*d-60;
+    p.animate([{transform:"translate("+cx+"px,"+cy+"px) scale(1) rotate(0)",opacity:1},
+      {transform:"translate("+(cx+dx)+"px,"+(cy+dy)+"px) scale(1) rotate("+(Math.random()*540)+"deg)",opacity:1,offset:.6},
+      {transform:"translate("+(cx+dx*1.1)+"px,"+(cy+dy+160)+"px) scale(.6) rotate(720deg)",opacity:0}],
+      {duration:1100+Math.random()*600,easing:"cubic-bezier(.2,.7,.3,1)"}).onfinish=(function(el){return function(){el.remove()}})(p);
   }
-  box.appendChild(b); box.scrollTop=box.scrollHeight;
+  var ring=document.createElement("i");ring.className="confetti";ring.style.cssText="width:30px;height:30px;border-radius:50%;border:3px solid #2fd3b4;background:none";
+  document.body.appendChild(ring);
+  ring.animate([{transform:"translate("+(cx-15)+"px,"+(cy-15)+"px) scale(1)",opacity:.9},{transform:"translate("+(cx-15)+"px,"+(cy-15)+"px) scale(14)",opacity:0}],{duration:900,easing:"ease-out"}).onfinish=function(){ring.remove()};
 }
+window.__wok={$:$,$$:$$,sleep:sleep,load:load,save:save,drop:drop,esc:esc,icon:icon,paintIcons:paintIcons,copyText:copyText,getUser:function(){return user},setUser:function(u){user=u},reduce:reduce};
 
-// ═══ KIRIM TEKS ═══════════════════════════════════
+/* ================= CHAT ================= */
+var msgsEl=$("#msgs"),promptEl=$("#prompt"),sendBtn=$("#sendBtn");
+var history=load("wok.chat",[]),favs=load("wok.favs",[]);
+var PROV={groq:{name:"Groq",base:"https://api.groq.com/openai/v1",model:"llama-3.3-70b-versatile",models:["llama-3.3-70b-versatile","llama-3.1-8b-instant","openai/gpt-oss-20b","openai/gpt-oss-120b","meta-llama/llama-4-scout-17b-16e-instruct"],ph:"gsk_..."},
+ openai:{name:"OpenAI",base:"https://api.openai.com/v1",model:"gpt-4o-mini",models:["gpt-4o-mini","gpt-4o","gpt-4.1-mini","gpt-4.1"],ph:"sk-..."},
+ gemini:{name:"Gemini",base:"https://generativelanguage.googleapis.com/v1beta/openai",model:"gemini-2.5-flash",models:["gemini-2.5-flash","gemini-2.5-flash-lite","gemini-2.5-pro"],ph:"AIza..."}};
+var settings=load("wok.set",{provider:"groq",key:"",model:"llama-3.3-70b-versatile",base:""});
+if(!PROV[settings.provider])settings.provider="groq";
+var pending=[],busy=false;
+var SYSTEM="Kamu adalah WOK-BOT, asisten AI di aplikasi WOK. Jawab dalam bahasa yang dipakai pengguna (utamanya Bahasa Indonesia), ramah, jelas, dan to the point. Gunakan format sederhana. Jika diberi foto atau file, bahas isinya.";
+var SUGGEST=["Jelaskan cara kerja AI dengan sederhana","Buatkan ide resep malam ini","Bantu tulis pesan izin ke atasan","Apa itu mode telepon di WOK?"];
+
+function enterChat(){
+  var lg=$("#login"),ch=$("#chat");lg.classList.add("leave");
+  setTimeout(function(){lg.hidden=true;ch.hidden=false;ch.classList.add("enter");initChat()},520);
+}
+function showChatNow(){$("#login").hidden=true;$("#chat").hidden=false;initChat()}
+var inited=false;
+function initChat(){
+  if(inited){return}inited=true;
+  msgsEl.innerHTML="";
+  if(!history.length)renderEmpty();else history.forEach(function(m){addMsgEl(m,true)});
+  updateFavCount();scrollDown(true);
+}
+function renderEmpty(){
+  var u=window.__wok.getUser();var name=u&&u.name?u.name:"";
+  var d=document.createElement("div");d.className="empty";d.id="emptyState";
+  d.innerHTML='<div class="logo" style="animation:logoIn .8s both"></div><h3>Halo'+(name?", "+esc(name):"")+'</h3><p>Aku WOK-BOT. Tanya apa saja, kirim foto atau file, atau telepon aku.</p><div class="chips"></div>';
+  d.querySelector(".logo").innerHTML=LOGO;
+  SUGGEST.forEach(function(s){var b=document.createElement("button");b.className="chip";b.textContent=s;b.onclick=function(){promptEl.value=s;autosize();doSend()};d.querySelector(".chips").appendChild(b)});
+  msgsEl.appendChild(d);
+}
+function scrollDown(now){msgsEl.style.scrollBehavior=now?"auto":"smooth";msgsEl.scrollTop=msgsEl.scrollHeight;requestAnimationFrame(function(){msgsEl.scrollTop=msgsEl.scrollHeight})}
+function fmt(t){
+  var out=esc(t);
+  out=out.replace(/```(\w*)\n?([\s\S]*?)```/g,function(_,l,c){return '<pre><code>'+c.replace(/\n$/,"")+'</code></pre>'});
+  out=out.replace(/`([^`\n]+)`/g,"<code>$1</code>").replace(/\*\*([^*\n]+)\*\*/g,"<b>$1</b>");
+  return out;
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function isFav(id){return favs.some(function(f){return f.id===id})}
+function addMsgEl(m,instant){
+  var e=$("#emptyState");if(e)e.remove();
+  var w=document.createElement("div");w.className="msg "+(m.role==="user"?"user":"bot");w.dataset.id=m.id;if(instant)w.style.animation="none";
+  var b=document.createElement("div");b.className="bubble";
+  var html="";
+  (m.imgs||[]).forEach(function(s){html+='<img alt="Foto terlampir" src="'+s+'">'});
+  (m.files||[]).forEach(function(n){html+='<div class="filechip">'+icon("file")+'<span>'+esc(n)+'</span></div><br>'});
+  (m.imgNames||[]).forEach(function(n){if(!(m.imgs&&m.imgs.length))html+='<div class="filechip">'+icon("image")+'<span>'+esc(n)+'</span></div><br>'});
+  b.innerHTML=html+fmt(m.text||"");
+  w.appendChild(b);
+  var a=document.createElement("div");a.className="actions";
+  a.innerHTML='<button class="fav'+(isFav(m.id)?" on":"")+'" aria-label="Favoritkan pesan">'+icon("star")+'</button><button class="cp" aria-label="Salin pesan">'+icon("copy")+'</button>';
+  a.querySelector(".fav").onclick=function(){toggleFav(m,this)};
+  a.querySelector(".cp").onclick=function(){copyText(m.text||"");this.style.color="var(--accent)";var s=this;setTimeout(function(){s.style.color=""},1000)};
+  w.appendChild(a);msgsEl.appendChild(w);return w;
+}
+function notice(t){var n=document.createElement("div");n.className="notice";n.textContent=t;msgsEl.appendChild(n);scrollDown()}
+function saveHistory(){save("wok.chat",history.slice(-80).map(function(m){return {id:m.id,role:m.role,text:m.text,files:m.files,imgNames:m.imgNames||(m.imgs&&m.imgs.length?["foto"]:undefined)}}))}
+function toggleFav(m,btn){
+  var i=favs.findIndex(function(f){return f.id===m.id});
+  if(i>=0){favs.splice(i,1);btn.classList.remove("on")}else{favs.unshift({id:m.id,text:m.text,role:m.role,ts:Date.now()});btn.classList.add("on")}
+  save("wok.favs",favs);updateFavCount();if($("#favSheet").classList.contains("on"))renderFavs();
+}
+function updateFavCount(){$("#favCount").textContent=favs.length?String(favs.length):""}
+
+/* ----- tulis & kirim ----- */
+function autosize(){promptEl.style.height="auto";promptEl.style.height=Math.min(promptEl.scrollHeight,140)+"px";sendBtn.disabled=busy||(!promptEl.value.trim()&&!pending.length)}
+promptEl.addEventListener("input",autosize);
+promptEl.addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey&&matchMedia("(pointer:fine)").matches){e.preventDefault();doSend()}});
+sendBtn.addEventListener("click",doSend);
+
+function typingEl(){var w=document.createElement("div");w.className="msg bot";w.innerHTML='<div class="bubble typing"><i></i><i></i><i></i></div>';msgsEl.appendChild(w);scrollDown();return w}
+
 async function doSend(){
-  const inp=$$('msginp'), text=inp.value.trim();
-  if(!text||!curBot) return;
-  inp.value='';
-  if(text==='/tes'){
-    const key=getKey(), out=[];
-    const t=async(n,f)=>{try{const r=await f();out.push(n+': OK '+r.status);}catch(e){out.push(n+': GAGAL '+e.name+' - '+e.message);}};
-    await t('1 GET tanpa header',()=>fetch('https://api.openai.com/v1/models'));
-    await t('2 GET + key',()=>fetch('https://api.openai.com/v1/models',{headers:{'Authorization':'Bearer '+key}}));
-    await t('3 POST + key',()=>fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:'{}'}));
-    addBubble({from:'bot',type:'text',text:out.join('\n'),time:ts()});
-    return;
+  var text=promptEl.value.trim();if((!text&&!pending.length)||busy)return;
+  var m={id:uid(),role:"user",text:text,imgs:[],files:[],fileTexts:[]};
+  pending.forEach(function(p){if(p.type==="image"){m.imgs.push(p.data)}else{m.files.push(p.name);m.fileTexts.push({name:p.name,text:p.text})}});
+  pending=[];renderAtt();promptEl.value="";autosize();
+  history.push(m);addMsgEl(m);scrollDown();saveHistory();
+  await reply(m);
+}
+async function reply(userMsg,opts){
+  busy=true;autosize();$("#whoSub").textContent="Mengetik...";
+  var t=typingEl(),botM={id:uid(),role:"bot",text:""},el=null,bub=null;
+  try{
+    var full=await askAI(buildMessages(opts),function(delta,all){
+      if(!el){t.remove();el=addMsgEl(botM);bub=el.querySelector(".bubble")}
+      bub.innerHTML=fmt(all);scrollDown();
+    },opts);
+    botM.text=full||"(tidak ada jawaban)";
+    if(!el){t.remove();el=addMsgEl(botM)}else el.querySelector(".bubble").innerHTML=fmt(botM.text);
+  }catch(err){
+    t.remove();
+    if(el)el.remove();
+    botM.text=offlineReply(userMsg.text||"");
+    el=addMsgEl(botM);
+    if(!window.__warned||window.__warned!==(err&&err.code)){window.__warned=err&&err.code;notice(explain(err))}
   }
-  if(text==='/resetkey'){ localStorage.removeItem('wok_openai_key'); alert('Key dihapus. Kirim pesan lagi untuk memasukkan key baru.'); return; }
-  const msg={from:'me',type:'text',text,time:ts()};
-  const msgs=await getMsgs(); msgs.push(msg);
-  await putMsgs(msgs);
-  addBubble(msg);
-  await getAiReply(msgs);
+  history.push(botM);saveHistory();scrollDown();
+  busy=false;autosize();$("#whoSub").textContent="Online";
+  return botM.text;
+}
+function buildMessages(opts){
+  var sys=SYSTEM+(opts&&opts.call?" Ini percakapan telepon suara: jawab singkat (maksimal 2-3 kalimat), tanpa format markdown, tanpa daftar.":"");
+  var arr=[{role:"system",content:sys}];
+  var recent=history.slice(-20);
+  recent.forEach(function(m,idx){
+    var isLast=idx===recent.length-1&&m.role==="user";
+    var txt=m.text||"";
+    (m.fileTexts||[]).forEach(function(f){txt+="\n\n[File: "+f.name+"]\n"+f.text});
+    if(!(m.fileTexts||[]).length&&(m.files||[]).length)txt+="\n\n[File terlampir: "+m.files.join(", ")+"]";
+    if(m.role==="bot"){arr.push({role:"assistant",content:txt});return}
+    if(isLast&&m.imgs&&m.imgs.length){
+      var c=[{type:"text",text:txt||"Tolong jelaskan foto ini."}];
+      m.imgs.forEach(function(u){c.push({type:"image_url",image_url:{url:u}})});
+      arr.push({role:"user",content:c});
+    }else arr.push({role:"user",content:txt||"(foto)"});
+  });
+  return arr;
+}
+function NoKey(){var e=new Error("nokey");e.code="nokey";return e}
+async function askAI(messages,onDelta,opts){
+  if(!settings.key)throw NoKey();
+  var pv=PROV[settings.provider]||PROV.openai;var base=(settings.base||pv.base).replace(/\/+$/,"");
+  var res=await fetch(base+"/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+settings.key},
+    body:JSON.stringify({model:settings.model||pv.model,messages:messages,stream:true,temperature:.7})});
+  if(!res.ok){var e=new Error("http");e.code="http";e.status=res.status;try{var j=await res.json();e.detail=j.error&&j.error.message}catch(_){}throw e}
+  if(!res.body||!res.body.getReader){var j2=await res.json();var tx=j2.choices[0].message.content;onDelta(tx,tx);return tx}
+  var rd=res.body.getReader(),dec=new TextDecoder(),buf="",all="";
+  for(;;){
+    var r=await rd.read();if(r.done)break;
+    buf+=dec.decode(r.value,{stream:true});
+    var lines=buf.split("\n");buf=lines.pop();
+    for(var i=0;i<lines.length;i++){
+      var l=lines[i].trim();if(l.indexOf("data:")!==0)continue;
+      var d=l.slice(5).trim();if(d==="[DONE]")continue;
+      try{var ch=JSON.parse(d).choices[0].delta.content;if(ch){all+=ch;onDelta(ch,all)}}catch(_){}
+    }
+  }
+  return all;
+}
+function explain(err){
+  if(err&&err.code==="nokey")return "API key belum diisi. Buka Pengaturan (ikon roda gigi) untuk memasukkan key Groq, OpenAI, atau Gemini. Sementara ini WOK-BOT menjawab dalam mode offline.";
+  if(err&&err.code==="http"){
+    var N=(PROV[settings.provider]||PROV.openai).name;
+    if(err.status===401||err.status===403||err.status===400&&/key|api/i.test(err.detail||""))return N+" menolak key kamu ("+err.status+"). Periksa key dan pilihan penyedia di Pengaturan.";
+    if(err.status===429)return "Kuota atau batas permintaan "+N+" habis (429). Tunggu sebentar atau cek akun kamu.";
+    return N+" mengirim error "+err.status+(err.detail?": "+err.detail:"")+".";
+  }
+  return "Tidak bisa terhubung ke penyedia AI dari halaman ini. Jika kamu membuka WOK lewat tampilan yang membatasi koneksi keluar, buka file WOK langsung di browser atau pasang di hosting sendiri.";
+}
+function offlineReply(q){
+  var s=q.toLowerCase();
+  if(/\b(halo|hai|hi|hello|pagi|siang|sore|malam)\b/.test(s))return "Halo! Aku WOK-BOT. Untuk jawaban lengkap seperti AI pada umumnya, masukkan API key di Pengaturan.";
+  if(/jam|pukul/.test(s))return "Sekarang pukul "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})+".";
+  if(/tanggal|hari ini/.test(s))return "Hari ini "+new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"})+".";
+  if(/terima kasih|makasih|thanks/.test(s))return "Sama-sama!";
+  if(/nama/.test(s))return "Namaku WOK-BOT.";
+  return "Mode offline aktif, jadi aku belum bisa menjawab pertanyaan itu. Isi API key di Pengaturan supaya WOK-BOT bisa menjawab apa saja.";
 }
 
-// ═══ KIRIM FOTO ═══════════════════════════════════
-async function doPhoto(inp){
-  if(!inp.files?.[0]) return;
-  const data=await resizeImg(inp.files[0]);
-  inp.value='';
-  const msg={from:'me',type:'photo',data,time:ts()};
-  const msgs=await getMsgs(); msgs.push(msg);
-  await putMsgs(msgs);
-  addBubble(msg);
-  await getAiReply(msgs,'[Pengguna mengirim foto. Komentari secara santai dan alami.]');
-}
-function resizeImg(file){
-  return new Promise(r=>{
-    const img=new Image(),url=URL.createObjectURL(file);
-    img.onload=()=>{
-      const max=520,ratio=Math.min(1,max/Math.max(img.width,img.height));
-      const c=document.createElement('canvas');
-      c.width=img.width*ratio; c.height=img.height*ratio;
-      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-      URL.revokeObjectURL(url);
-      r(c.toDataURL('image/jpeg',.72));
-    };
-    img.src=url;
+/* ----- lampiran ----- */
+$("#attBtn").addEventListener("click",function(e){e.stopPropagation();$("#attMenu").hidden=!$("#attMenu").hidden});
+document.addEventListener("click",function(e){if(!e.target.closest("#attMenu"))$("#attMenu").hidden=true});
+$("#pickPhoto").onclick=function(){$("#photoIn").click()};$("#pickFile").onclick=function(){$("#fileIn").click()};
+function shrink(file){return new Promise(function(res,rej){
+  var fr=new FileReader();fr.onerror=rej;fr.onload=function(){
+    var im=new Image();im.onerror=rej;im.onload=function(){
+      var M=1280,sc=Math.min(1,M/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);
+      c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.82))};im.src=fr.result};fr.readAsDataURL(file)})}
+function readText(file){return new Promise(function(res,rej){var fr=new FileReader();fr.onerror=rej;fr.onload=function(){res(String(fr.result).slice(0,60000))};fr.readAsText(file)})}
+$("#photoIn").addEventListener("change",async function(){
+  for(var f of this.files){try{pending.push({type:"image",name:f.name,data:await shrink(f)})}catch(e){notice("Foto "+f.name+" tidak bisa dibuka.")}}
+  this.value="";renderAtt();autosize();$("#attMenu").hidden=true;
+});
+$("#fileIn").addEventListener("change",async function(){
+  for(var f of this.files){try{pending.push({type:"file",name:f.name,text:await readText(f)})}catch(e){notice("File "+f.name+" tidak bisa dibaca sebagai teks.")}}
+  this.value="";renderAtt();autosize();$("#attMenu").hidden=true;
+});
+function renderAtt(){
+  var row=$("#attRow");row.innerHTML="";
+  pending.forEach(function(p,i){
+    var d=document.createElement("div");d.className="att";
+    d.innerHTML=(p.type==="image"?'<img alt="" src="'+p.data+'">':'<div class="ft">'+icon("file")+'</div>')+'<span>'+esc(p.name)+'</span><button aria-label="Hapus lampiran">'+icon("x")+'</button>';
+    d.querySelector("button").onclick=function(){pending.splice(i,1);renderAtt();autosize()};row.appendChild(d);
   });
 }
 
-// ═══ VOICE ════════════════════════════════════════
-async function toggleMic(){
-  const btn=$$('micbtn');
-  if(!_mr||_mr.state==='inactive'){
+/* ----- suara (pengenalan & pembacaan) ----- */
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function micProblem(code){
+  if(code==="not-allowed"||code==="service-not-allowed")return "Mikrofon diblokir di tampilan ini. Buka WOK langsung di browser dan izinkan mikrofon untuk memakai suara.";
+  if(code==="unsupported")return "Browser ini belum mendukung input suara. Coba Chrome atau Safari terbaru.";
+  if(code==="no-speech")return "Suara tidak terdengar. Coba lagi.";
+  return "Input suara gagal ("+code+").";
+}
+var voiceRec=null;
+$("#micBtn").addEventListener("click",function(){
+  if(voiceRec){voiceRec.stop();return}
+  if(!SR){notice(micProblem("unsupported"));return}
+  var r=new SR(),final="",bar=$("#inputbar"),btn=$("#micBtn"),live=$("#recLive");
+  r.lang="id-ID";r.interimResults=true;r.continuous=false;
+  r.onresult=function(e){var itm="";final="";for(var i=0;i<e.results.length;i++){if(e.results[i].isFinal)final+=e.results[i][0].transcript;else itm+=e.results[i][0].transcript}live.textContent=(final+itm)||"Mendengarkan..."};
+  r.onerror=function(e){notice(micProblem(e.error))};
+  r.onend=function(){voiceRec=null;bar.classList.remove("recording");btn.classList.remove("rec");live.textContent="Mendengarkan...";
+    if(final.trim()){promptEl.value=(promptEl.value+" "+final).trim();autosize();doSend()}};
+  try{r.start();voiceRec=r;bar.classList.add("recording");btn.classList.add("rec")}catch(e){notice(micProblem("unsupported"))}
+});
+function plain(t){return t.replace(/```[\s\S]*?```/g," ").replace(/[`*_#>]/g,"").replace(/\s+/g," ").trim()}
+function speak(text){
+  return new Promise(function(res){
+    var done=false,fin=function(){if(!done){done=true;res()}};
     try{
-      _mstream=await navigator.mediaDevices.getUserMedia({audio:true});
-      _mr=new MediaRecorder(_mstream);
-      _chunks=[];
-      _mr.ondataavailable=e=>_chunks.push(e.data);
-      _mr.onstop=async()=>{
-        _mstream.getTracks().forEach(t=>t.stop());
-        const blob=new Blob(_chunks,{type:'audio/webm'});
-        const data=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(blob);});
-        const msg={from:'me',type:'voice',data,time:ts()};
-        const msgs=await getMsgs(); msgs.push(msg);
-        await putMsgs(msgs);
-        addBubble(msg);
-        btn.textContent='🎤'; btn.classList.remove('rec');
-        await getAiReply(msgs,'[Pengguna mengirim pesan suara. Tanggapi secara santai seolah kamu mendengarnya.]');
-      };
-      _mr.start();
-      btn.textContent='⏹'; btn.classList.add('rec');
-    }catch(e){alert('Tidak bisa akses mikrofon: '+e.message);}
-  }else{_mr.stop();}
+      if(!window.speechSynthesis){throw 0}
+      var u=new SpeechSynthesisUtterance(plain(text));u.lang="id-ID";u.rate=1.02;
+      var v=speechSynthesis.getVoices().filter(function(x){return /^id/i.test(x.lang)})[0];if(v)u.voice=v;
+      u.onend=fin;u.onerror=fin;speechSynthesis.cancel();speechSynthesis.speak(u);
+      setTimeout(fin,Math.max(4000,text.length*95));
+    }catch(e){setTimeout(fin,Math.min(8000,600+text.length*55))}
+  });
 }
 
-// ═══ OPENAI ═══════════════════════════════════════
-const OPENAI_MODEL = 'gpt-4o-mini';
-const PROXY_URL = 'https://wok-ai.virendraaldwinaracman.workers.dev'; // isi dengan URL Cloudflare Worker (lihat worker.js)
-const OPENAI_KEY = ''; // opsional: isi di sini, kalau kosong akan diminta saat pertama kali chat
-
-function getKey(){
-  let k = (OPENAI_KEY || localStorage.getItem('wok_openai_key') || '').replace(/[^\x21-\x7E]/g,'');
-  if(!k){
-    k = (prompt('Masukkan OpenAI API key (sk-...):')||'').replace(/[^\x21-\x7E]/g,'');
-    if(k) localStorage.setItem('wok_openai_key', k);
-  }
-  return k;
+/* ================= TELEPON ================= */
+var callEl=$("#call"),callOn=false,callTimerT=null,callStart=0,muted=false,callRec=null;
+function setCall(state,status){callEl.dataset.state=state;$("#callStatus").textContent=status}
+$("#callBtn").addEventListener("click",startCall);
+async function startCall(){
+  if(callOn)return;callOn=true;muted=false;$("#callMute").classList.remove("on");$("#callCap").textContent="";
+  callEl.classList.add("on");setCall("idle","Menghubungkan...");
+  var canListen=!!SR;$("#callType").classList.toggle("on",!canListen);
+  callStart=Date.now();clearInterval(callTimerT);
+  callTimerT=setInterval(function(){var s=Math.floor((Date.now()-callStart)/1000);$("#callTime").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")},500);
+  await sleep(1100);if(!callOn)return;
+  var greet="Halo, aku WOK-BOT. Ada yang bisa aku bantu?";
+  await botSpeak(greet,true);
+  loopListen();
+}
+async function botSpeak(text,skipHistory){
+  if(!callOn)return;setCall("speaking","WOK-BOT berbicara");$("#callCap").textContent=plain(text);
+  if(!skipHistory){}
+  await speak(text);
+  if(callOn)setCall("idle","");
+}
+function loopListen(){
+  if(!callOn)return;
+  if(!SR){setCall("idle","Ketik jawabanmu di bawah");return}
+  if(muted){setCall("idle","Mikrofon dibisukan");return}
+  setCall("listening","Mendengarkan...");
+  var r=new SR(),got="";r.lang="id-ID";r.interimResults=true;r.continuous=false;callRec=r;
+  r.onresult=function(e){var s="";for(var i=0;i<e.results.length;i++)s+=e.results[i][0].transcript;got=s;$("#callCap").textContent=s;
+    if(e.results[e.results.length-1].isFinal){got=s}};
+  r.onerror=function(e){
+    if(e.error==="not-allowed"||e.error==="service-not-allowed"){callRec=null;$("#callType").classList.add("on");setCall("idle","Mikrofon diblokir. Ketik jawabanmu di bawah.");$("#callCap").textContent=micProblem("not-allowed");got="\u0000"}
+  };
+  r.onend=async function(){
+    callRec=null;if(!callOn||got==="\u0000")return;
+    if(got.trim())await callTurn(got.trim());else loopListen();
+  };
+  try{r.start()}catch(e){$("#callType").classList.add("on");setCall("idle","Ketik jawabanmu di bawah")}
+}
+async function callTurn(text){
+  if(!callOn)return;
+  var m={id:uid(),role:"user",text:text};history.push(m);addMsgEl(m);saveHistory();scrollDown();
+  setCall("thinking","Sedang berpikir...");$("#callCap").textContent="";
+  var ans="";
+  try{ans=await askAI(buildMessages({call:true}),function(){},{call:true})}
+  catch(err){ans=settings.key?"Maaf, koneksi ke penyedia AI bermasalah. Coba lagi sebentar.":"API key belum diisi. Buka pengaturan untuk memasukkannya."}
+  var b={id:uid(),role:"bot",text:ans||"Maaf, aku tidak menangkap itu."};history.push(b);addMsgEl(b);saveHistory();scrollDown();
+  if(!callOn)return;
+  await botSpeak(b.text,true);loopListen();
+}
+$("#callType").addEventListener("submit",function(e){e.preventDefault();var i=$("#callText"),v=i.value.trim();if(!v||!callOn)return;i.value="";try{speechSynthesis.cancel()}catch(_){}callTurn(v)});
+$("#callKeys").addEventListener("click",function(){var t=$("#callType");t.classList.toggle("on");$("#callKeys").classList.toggle("on",t.classList.contains("on"));if(t.classList.contains("on"))$("#callText").focus()});
+$("#callMute").addEventListener("click",function(){
+  muted=!muted;this.classList.toggle("on",muted);
+  if(muted){if(callRec){try{callRec.abort()}catch(_){}}setCall("idle","Mikrofon dibisukan")}else if(callEl.dataset.state!=="speaking"&&callEl.dataset.state!=="thinking")loopListen();
+});
+$("#callEnd").addEventListener("click",endCall);
+function endCall(){
+  if(!callOn)return;callOn=false;clearInterval(callTimerT);
+  if(callRec){try{callRec.abort()}catch(_){}callRec=null}
+  try{speechSynthesis.cancel()}catch(_){}
+  var d=$("#callTime").textContent;callEl.classList.remove("on");$("#callType").classList.remove("on");$("#callKeys").classList.remove("on");
+  notice("Panggilan berakhir, durasi "+d);
 }
 
-async function getAiReply(history, extra=''){
-  const key = PROXY_URL ? 'proxy' : getKey();
-  if(!key){
-    addBubble({from:'bot',type:'text',text:'⚠️ API key OpenAI belum diisi.',time:ts()});
-    return;
-  }
-  showTyping();
-  try{
-    const messages=[{role:'system',content:curBot.persona+'\nBalas singkat sebagai '+curBot.name+'.'}];
-    history.filter(m=>m.type==='text').slice(-18).forEach(m=>{
-      messages.push({role:m.from==='me'?'user':'assistant',content:m.text});
-    });
-    if(extra) messages.push({role:'user',content:extra});
-
-    const r=PROXY_URL
-      ? await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages})})
-      : await fetch('https://api.openai.com/v1/chat/completions',{
-          method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-          body:JSON.stringify({model:OPENAI_MODEL,messages,max_tokens:400})
-        });
-    const data=await r.json();
-    if(!r.ok){
-      if(r.status===401) localStorage.removeItem('wok_openai_key');
-      throw new Error(data.error?.message||('HTTP '+r.status));
-    }
-    hideTyping();
-    const reply={from:'bot',type:'text',text:data.choices[0].message.content.trim(),time:ts()};
-    addBubble(reply);
-    const msgs=await getMsgs(); msgs.push(reply);
-    await putMsgs(msgs);
-  }catch(e){
-    hideTyping();
-    let m=e.message||'Gagal';
-    if(/failed to fetch/i.test(m)) m+=' (key '+key.length+' karakter, mulai "'+key.slice(0,3)+'"). Coba tombol reset key: ketik /resetkey';
-    addBubble({from:'bot',type:'text',text:'⚠️ '+m,time:ts()});
-  }
+/* ================= SHEETS ================= */
+var scrim=$("#scrim"),openSheetEl=null;
+function openSheet(id){closeSheet();openSheetEl=$(id);scrim.classList.add("on");openSheetEl.classList.add("on")}
+function closeSheet(){if(openSheetEl){openSheetEl.classList.remove("on");openSheetEl=null}scrim.classList.remove("on")}
+scrim.addEventListener("click",closeSheet);
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeSheet()});
+$$(".sheet").forEach(function(s){
+  var y0=null;s.addEventListener("touchstart",function(e){if(e.target.closest(".body")&&s.querySelector(".body").scrollTop>0)return;y0=e.touches[0].clientY},{passive:true});
+  s.addEventListener("touchend",function(e){if(y0!=null&&e.changedTouches[0].clientY-y0>90)closeSheet();y0=null});
+});
+/* favorit */
+$("#favBtn").addEventListener("click",function(){renderFavs();openSheet("#favSheet")});
+function renderFavs(){
+  var l=$("#favList");l.innerHTML="";
+  if(!favs.length){l.innerHTML='<div class="empty-note">Belum ada pesan favorit.<br>Ketuk ikon bintang di bawah pesan untuk menyimpannya.</div>';return}
+  favs.forEach(function(f){
+    var d=document.createElement("div");d.className="fav-item";
+    d.innerHTML='<p>'+esc(f.text)+'<small>'+(f.role==="user"?"Pesan kamu":"WOK-BOT")+' · '+new Date(f.ts).toLocaleDateString("id-ID",{day:"numeric",month:"short"})+'</small></p><div style="display:flex;flex-direction:column;gap:2px"><button class="iconbtn" data-a="go" aria-label="Lihat di chat" style="width:34px;height:34px">'+icon("arrow")+'</button><button class="iconbtn" data-a="rm" aria-label="Hapus favorit" style="width:34px;height:34px">'+icon("trash")+'</button></div>';
+    d.querySelector('[data-a="rm"]').onclick=function(){favs=favs.filter(function(x){return x.id!==f.id});save("wok.favs",favs);updateFavCount();var b=$('.msg[data-id="'+f.id+'"] .fav');if(b)b.classList.remove("on");renderFavs()};
+    d.querySelector('[data-a="go"]').onclick=function(){closeSheet();var el=$('.msg[data-id="'+f.id+'"]');if(el){el.scrollIntoView({block:"center",behavior:"smooth"});el.animate([{transform:"scale(1)"},{transform:"scale(1.06)"},{transform:"scale(1)"}],{duration:700,iterations:2})}else notice("Pesan ini sudah tidak ada di riwayat chat.")};
+    l.appendChild(d);
+  });
 }
-
-function showTyping(){
-  const b=$$('msgBox'); if($$('typ')) return;
-  const t=document.createElement('div');
-  t.className='typind'; t.id='typ';
-  t.innerHTML='<span></span><span></span><span></span>';
-  b.appendChild(t); b.scrollTop=b.scrollHeight;
+/* customer service */
+var FAQ=[
+ ["Kode OTP tidak muncul","Kode tampil otomatis di kartu hijau pada halaman verifikasi. Ketuk Kirim ulang bila perlu kode baru."],
+ ["WOK-BOT tidak menjawab","Pastikan API key sudah diisi di Pengaturan, penyedia AI sudah dipilih dengan benar, dan kuota atau saldo akun masih ada."],
+ ["Mikrofon atau telepon tidak jalan","Izinkan akses mikrofon di browser. Bila belum bisa, ketik jawabanmu lewat tombol keyboard di layar telepon."],
+ ["Cara menyimpan pesan penting","Ketuk ikon bintang di bawah pesan. Semua pesan favorit ada di ikon bintang pada bagian atas chat."]
+];
+(function(){
+  var l=$("#faqList");
+  FAQ.forEach(function(f){
+    var d=document.createElement("div");d.className="faq";
+    d.innerHTML='<button>'+esc(f[0])+icon("chev")+'</button><div class="ans"><div>'+esc(f[1])+'</div></div>';
+    d.querySelector("button").onclick=function(){var o=d.classList.contains("open");$$(".faq").forEach(function(x){x.classList.remove("open")});if(!o)d.classList.add("open")};
+    l.appendChild(d);
+  });
+  csSay("Halo, ini tim CS WOK. Ada kendala apa hari ini?");
+})();
+function csSay(t,user){
+  var w=document.createElement("div");w.className="msg "+(user?"user":"bot");w.innerHTML='<div class="bubble">'+esc(t)+'</div>';
+  var log=$("#csLog");log.appendChild(w);log.scrollTop=log.scrollHeight;
 }
-function hideTyping(){ $$('typ')?.remove(); }
-
-// ═══ MODAL ════════════════════════════════════════
-function openModal(){ $$('mname').value=''; $$('mpersona').value=''; $$('merr').style.display='none'; $$('modal').classList.add('on'); }
-function closeModal(){ $$('modal').classList.remove('on'); }
-async function saveBot(){
-  const name=$$('mname').value.trim(), persona=$$('mpersona').value.trim();
-  if(name.length<2){$$('merr').textContent='Nama minimal 2 karakter';$$('merr').style.display='block';return;}
-  if(persona.length<5){$$('merr').textContent='Isi kepribadian botnya';$$('merr').style.display='block';return;}
-  const bot={id:'b'+Date.now(),name,persona,creator:username};
-  // Simpan ke db
-  if($db){ try{await $db.collection('bots').doc(bot.id).set(bot);}catch(e){} }
-  // Simpan ke localStorage juga
-  const arr=lsGet('wok_bots')||[]; arr.push(bot); lsSet('wok_bots',arr);
-  closeModal();
-  openBot(bot);
+$("#csBtn").addEventListener("click",function(){openSheet("#csSheet")});
+$("#csForm").addEventListener("submit",async function(e){
+  e.preventDefault();var i=$("#csInput"),v=i.value.trim();if(!v)return;i.value="";csSay(v,true);
+  var s=v.toLowerCase(),a="Terima kasih, pesanmu sudah kami catat. Tim CS membalas lewat email dalam 1x24 jam.";
+  if(/otp|kode|login|masuk/.test(s))a="Kode OTP muncul otomatis di layar verifikasi. Kalau kode sudah lewat 2 menit, ketuk Kirim ulang.";
+  else if(/api|key|openai|jawab/.test(s))a="Buka Pengaturan, pilih penyedia AI, isi API key, lalu simpan. Cek juga kuota atau saldo akunmu.";
+  else if(/suara|mic|telepon|call/.test(s))a="Pastikan izin mikrofon aktif di browser. Di layar telepon kamu juga bisa mengetik lewat tombol keyboard.";
+  else if(/tema|gelap|terang|dark|light/.test(s))a="Ketuk ikon bulan atau matahari di bagian atas chat untuk mengganti tema.";
+  await sleep(700);csSay(a);
+});
+/* pengaturan */
+function fillProv(p,keepModel){
+  var pv=PROV[p];$("#apiKey").placeholder=pv.ph;$("#baseUrl").placeholder=pv.base;$("#keyLbl").textContent="API key "+pv.name;
+  $("#modelList").innerHTML=pv.models.map(function(m){return '<option value="'+m+'">'}).join("");
+  if(!keepModel)$("#model").value=pv.model;
 }
+$("#provider").addEventListener("change",function(){settings.key=settings.key;fillProv(this.value,false);$("#baseUrl").value="";$("#apiKey").value=load("wok.key."+this.value,"")});
+$("#setBtn").addEventListener("click",function(){
+  $("#provider").value=settings.provider;fillProv(settings.provider,true);
+  $("#apiKey").value=settings.key||"";$("#model").value=settings.model||PROV[settings.provider].model;$("#baseUrl").value=settings.base||"";openSheet("#setSheet")});
+$("#saveSet").addEventListener("click",function(){
+  var p=$("#provider").value;
+  settings={provider:p,key:$("#apiKey").value.trim(),model:$("#model").value.trim()||PROV[p].model,base:$("#baseUrl").value.trim()};
+  save("wok.set",settings);save("wok.key."+p,settings.key);closeSheet();window.__warned=null;
+  notice(settings.key?"Pengaturan tersimpan. WOK-BOT siap memakai "+PROV[p].name+".":"Pengaturan tersimpan tanpa API key.");
+});
+$("#clearChat").addEventListener("click",function(){history=[];saveHistory();drop("wok.chat");msgsEl.innerHTML="";renderEmpty();closeSheet()});
+$("#logout").addEventListener("click",function(){drop("wok.user");location.reload()});
 
-// ═══ HELPERS ══════════════════════════════════════
-function setView(id){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('on')); $$(id).classList.add('on'); }
+/* ----- mulai ----- */
+if(user&&user.name){showChatNow();}
+autosize();
+})();
 </script>
-</body>
-</html>
+</body></html>
