@@ -510,10 +510,12 @@ body{animation:none}
       <button class="iconbtn theme-ico" id="themeBtn" aria-label="Ganti tema"><svg class="ico moon" data-i="moon"></svg><svg class="ico sun" data-i="sun"></svg></button>
       <button class="iconbtn" id="setBtn" aria-label="Pengaturan"><svg class="ico" data-i="gear"></svg></button>
     </header>
+    <div class="gamebar" id="gameBar"><button class="gb main" data-g="">🎮 Semua Game</button><button class="gb" data-g="tebak"><span>🎯</span>Tebak Angka</button><button class="gb" data-g="suit"><span>✌️</span>Suit</button><button class="gb" data-g="xo"><span>❌</span>XO</button><button class="gb" data-g="snake"><span>🐍</span>Snake</button><button class="gb" data-g="g2048"><span>🔢</span>2048</button><button class="gb" data-g="memori"><span>🃏</span>Memori</button><button class="gb" data-g="kuis"><span>🧠</span>Kuis</button><button class="gb" data-g="reaksi"><span>⚡</span>Reaksi</button><button class="gb" data-g="tikus"><span>🐹</span>Pukul Tikus</button><button class="gb" data-g="mate"><span>➗</span>Matematika</button></div>
     <div class="msgs" id="msgs" aria-live="polite"></div>
     <div class="composer">
       <div class="menu" id="attMenu" hidden>
         <button id="pickPhoto"><svg class="ico" data-i="image"></svg>Foto</button>
+        <button id="pickGame">🎮 Game</button>
         <button id="pickFile"><svg class="ico" data-i="file"></svg>File</button>
       </div>
       <div class="attach-row" id="attRow"></div>
@@ -2941,7 +2943,7 @@ tb.addEventListener("click",openPanel);
 $("#fxClose",panel).addEventListener("click",closePanel);
 $("#fxBack",panel).addEventListener("click",function(){if(view)hub();else closePanel()});
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&panel.classList.contains("on")){if(view)hub();else closePanel()}});
-window.WOKFX={features:FE,open:openPanel,close:closePanel};
+window.WOKFX={features:FE,open:openPanel,close:closePanel,game:function(id){openPanel();var f=id&&byId(id);if(f)openF(f);else{tab="game";hub()}}};
 })();
 </script>
 <style id="v5">
@@ -3007,4 +3009,73 @@ html body #login .tagline{font:400 13px var(--f-body)!important;color:#8fbcc3!im
 #login .card h2{font-size:16px!important;margin:6px 0 4px}#login .card p{font-size:13px;margin:0 0 6px}
 #login .field input{padding-left:4px!important}#login .field label{left:4px!important}
 </style>
+<style id="anim">
+/* 28 animasi: login, chat, game, panggilan */
+@keyframes aCardIn{from{opacity:0;transform:translateY(30px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes aFloat{50%{transform:translateY(-7px)}}
+@keyframes aPulse{0%{box-shadow:0 0 0 0 #8ff0ee99}100%{box-shadow:0 0 0 22px #8ff0ee00}}
+@keyframes aGlow{50%{text-shadow:0 0 14px #8ff0eeaa}}
+@keyframes aSheen{from{background-position:-160% 0}to{background-position:260% 0}}
+@keyframes aBlink{50%{opacity:.25}}
+@keyframes aShake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+@keyframes aPop{from{transform:scale(.6);opacity:0}70%{transform:scale(1.08)}to{transform:none;opacity:1}}
+@keyframes aSlideR{from{opacity:0;transform:translateX(36px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes aSlideL{from{opacity:0;transform:translateX(-36px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes aFade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes aBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+@keyframes aSend{0%{box-shadow:0 0 0 0 #2f7bff88}100%{box-shadow:0 0 0 14px #2f7bff00}}
+@keyframes aWiggle{0%,86%,100%{transform:rotate(0)}90%{transform:rotate(-14deg)}94%{transform:rotate(12deg)}97%{transform:rotate(-6deg)}}
+@keyframes aChip{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes aGrad{0%,100%{background-position:0 0}50%{background-position:100% 100%}}
+@keyframes aOrb{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+@keyframes aCall{0%{box-shadow:0 0 0 0 #ffffff66}100%{box-shadow:0 0 0 34px #ffffff00}}
+@keyframes aDots{0%{content:""}25%{content:"."}50%{content:".."}75%,100%{content:"..."}}
+@keyframes aSideIn{from{opacity:0;transform:translateX(70px)}to{opacity:1;transform:none}}
+@keyframes aBarUp{from{opacity:0;transform:translateY(80px)}to{opacity:1;transform:none}}
+@keyframes aEnd{50%{box-shadow:0 0 0 10px #f0003c33}}
+@keyframes aBeauty{50%{box-shadow:0 0 16px #ffffff88}}
+@keyframes aDrop{from{opacity:0;transform:translateY(-24px)}to{opacity:1;transform:none}}
+@keyframes aTab{from{transform:scale(.85)}to{transform:none}}
+@keyframes aHeart{0%{transform:scale(1)}40%{transform:scale(1.5) rotate(-12deg)}100%{transform:scale(1)}}
+@keyframes aNotice{from{opacity:0;transform:scaleY(.4)}to{opacity:1;transform:none}}
+@keyframes aTilt{50%{transform:rotate(6deg)}}
+@keyframes aCardUp{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+html body #login{background-size:200% 200%!important;animation:aGrad 14s ease-in-out infinite}
+html body #login .login-wrap{animation:aCardIn .8s cubic-bezier(.2,.9,.2,1) both}
+html body #login .logo{animation:aFloat 4s ease-in-out infinite,aPulse 2.8s ease-out infinite!important}
+html body #login .brand{animation:aGlow 3.5s ease-in-out infinite!important}
+#login .btn:not(.ghost){background-image:linear-gradient(100deg,transparent 35%,#ffffff2e 50%,transparent 65%)!important;background-size:60% 100%;background-repeat:no-repeat;animation:aSheen 3.2s ease-in-out infinite}
+#login .err:not(:empty){animation:aShake .45s}
+#login .otp .cell{animation:aPop .5s both}#login .otp .cell:nth-child(2){animation-delay:.08s}#login .otp .cell:nth-child(3){animation-delay:.16s}#login .otp .cell:nth-child(4){animation-delay:.24s}
+#login .otp-code .dot{animation:aBlink 1.2s infinite}
+html body #chat .msg.user{animation:aSlideR .42s cubic-bezier(.2,1.1,.3,1) both}
+html body #chat .msg.bot{animation:aSlideL .42s cubic-bezier(.2,1.1,.3,1) both}
+.daypill{animation:aFade .5s both}
+.fab-dn.on{animation:aBounce 1.4s ease-in-out infinite}
+html body #chat .inputbar .send:not(:disabled){animation:aSend 1.8s ease-out infinite}
+#chat .topbar .who span i{animation:aBlink 2s infinite!important}
+#chat .topbar .logo{animation:aTilt 6s ease-in-out infinite!important}
+#fxBtn svg{animation:aWiggle 5s infinite}
+.gamebar{flex:none;display:flex;gap:8px;overflow-x:auto;padding:10px 12px 4px;scrollbar-width:none;background:#0a2a47}.gamebar::-webkit-scrollbar{display:none}
+.gb{flex:none;display:flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:17px;background:#ffffff1a;color:#eaf3ff;font:500 13px var(--f-body);border:0;cursor:pointer;animation:aChip .5s both;transition:transform .15s,background .2s}
+.gb:active{transform:scale(.93)}.gb:hover{background:#ffffff2e}.gb.main{background:#2f7bff;font-weight:700}
+.gb span{font-size:16px}.gb:nth-child(2){animation-delay:.05s}.gb:nth-child(3){animation-delay:.1s}.gb:nth-child(4){animation-delay:.15s}.gb:nth-child(5){animation-delay:.2s}.gb:nth-child(6){animation-delay:.25s}.gb:nth-child(7){animation-delay:.3s}.gb:nth-child(8){animation-delay:.35s}.gb:nth-child(n+9){animation-delay:.4s}
+#chat .inputbar.recording .mic{animation:aCall 1.2s infinite}
+.vc.on .vc-top{animation:aDrop .6s both}.vc.on .vc-side>*{animation:aSideIn .55s both}.vc-side>:nth-child(2){animation-delay:.1s!important}.vc-side>:nth-child(3){animation-delay:.2s!important}
+.vc.on .vc-bar{animation:aBarUp .6s .1s cubic-bezier(.2,.9,.2,1) both}.vc .vb.end{animation:aEnd 2s infinite}
+.vc.on .vc-beauty{animation:aBeauty 3s infinite,aPop .6s both}
+.vc[data-state=idle] .orb2,.vc[data-state=listening] .orb2{animation:aCall 1.8s infinite}.vc[data-state=speaking] .orb2{animation:aCall .9s infinite}
+.vc .orb2 i{animation:aOrb 2.2s ease-in-out infinite}
+#callStatus:empty::after,#callStatus::after{content:"";animation:aDots 1.4s steps(1) infinite}
+.vc[data-state=speaking] #callStatus::after,.vc[data-state=thinking] #callStatus::after{content:none}
+.fx-tab.on{animation:aTab .25s both}#fxGrid>*{animation:aCardUp .4s both}
+.actions .fav.on{animation:aHeart .5s}
+html body #chat .notice{animation:aNotice .35s both}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important}}
+</style>
+<script>
+(function(){var gb=document.getElementById("gameBar");if(!gb)return;
+gb.addEventListener("click",function(e){var b=e.target.closest(".gb");if(b&&window.WOKFX)WOKFX.game(b.dataset.g||"")});
+var pg=document.getElementById("pickGame");if(pg)pg.addEventListener("click",function(){var m=document.getElementById("attMenu");if(m)m.hidden=true;if(window.WOKFX)WOKFX.game("")})})();
+</script>
 </body></html>
