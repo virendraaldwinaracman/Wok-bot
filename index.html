@@ -573,6 +573,41 @@ body{animation:none}
   </div>
 </section>
 
+<style id="vccss">
+.vc{position:fixed;inset:0;z-index:60;background:#2a2c2d;color:#fff;font-family:var(--f-body);opacity:0;pointer-events:none;transform:translateY(14px);transition:opacity .3s,transform .4s cubic-bezier(.2,.9,.2,1);overflow:hidden}
+.vc.on{opacity:1;pointer-events:auto;transform:none}
+.vc video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none;transition:filter .3s}
+.vc.cam video{display:block}.vc.back video{transform:none}
+.vc-shade{position:absolute;inset:0;background:linear-gradient(#0006,#0000 22%,#0000 60%,#0007)}
+.vc:not(.cam){background:radial-gradient(120% 80% at 50% 20%,#4a4d4e,#1d1f20)}
+.vc-top{position:absolute;top:calc(env(safe-area-inset-top,0px) + 56px);left:0;right:0;text-align:center;text-shadow:0 1px 6px #0008}
+.vc-top h2{margin:0;font:600 22px var(--f-display)}.vc-top p{margin:2px 0 0;font-size:20px;opacity:.95;min-height:26px}.vc-top small{font-size:13px;opacity:.75}
+.vc button{color:#fff;border:0;cursor:pointer}
+.vc-side{position:absolute;right:18px;top:calc(env(safe-area-inset-top,0px) + 56px);display:flex;flex-direction:column;gap:14px;align-items:center}
+.vc-r{width:72px;height:72px;border-radius:50%;background:#1a2022ee;display:grid;place-items:center;transition:transform .15s}
+.vc-r:active,.vb:active{transform:scale(.9)}
+.vc-fxn{font-size:12px;text-shadow:0 1px 4px #000;min-height:14px}
+.vc-beauty{position:absolute;left:20px;top:calc(env(safe-area-inset-top,0px) + 120px);width:54px;padding:12px 0 8px;border-radius:27px;background:#6f6f6f99;border:2px solid #ffffffb0!important;display:flex;flex-direction:column;align-items:center;gap:4px;backdrop-filter:blur(6px)}
+.vc-beauty svg{width:34px;height:34px}.vc-beauty b{font:500 15px var(--f-body)}
+.vc-bot{position:absolute;left:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 142px)}
+.orb2{width:76px;height:76px;border-radius:50%;background:#101314cc;display:grid;place-items:center;border:2px solid #ffffff40}
+.orb2 i{width:34px;height:34px;border-radius:50%;background:conic-gradient(#2fd3b4,#8a7cff,#ffb24a,#2fd3b4);transition:transform .2s}
+.vc[data-state=listening] .orb2 i{animation:vcb 1.6s ease-in-out infinite}.vc[data-state=speaking] .orb2 i{animation:vcb .45s ease-in-out infinite alternate}
+.vc[data-state=thinking] .orb2 i{animation:vcs 1s linear infinite}
+@keyframes vcb{to{transform:scale(1.5)}}@keyframes vcs{to{transform:rotate(360deg)}}
+.vc .caption{position:absolute;left:104px;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);font-size:15px;line-height:1.35;text-shadow:0 1px 5px #000;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.vc .typebox{display:none;position:absolute;left:18px;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 112px);gap:8px;margin:0}
+.vc .typebox.on{display:flex}.vc .typebox.on~.caption{display:none}
+.vc .typebox input{flex:1;min-width:0;height:46px;border-radius:23px;border:0;background:#101314e6;color:#fff;padding:0 18px;font-size:16px}
+.vc .typebox button{width:46px;height:46px;border-radius:50%;background:#fff;color:#111;display:grid;place-items:center}
+.vc-bar{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);height:88px;border-radius:44px;background:#12181ae6;display:flex;align-items:center;justify-content:space-between;padding:0 12px}
+.vb{width:70px;height:70px;border-radius:50%;background:#ffffff14;display:grid;place-items:center;transition:transform .15s,background .2s}
+.vb.on{background:#fff;color:#111!important}#callMute.on{background:#ffffff14;color:#fff!important}.vb.end{background:#f0003c}
+.vb .sl{display:none}.vb.mutedx .sl{display:block}
+.fab-dn{position:absolute;right:16px;bottom:96px;width:42px;height:42px;border-radius:50%;background:var(--surface);color:var(--fg);box-shadow:var(--shadow);display:none;place-items:center;z-index:5;border:1px solid var(--line)}
+.fab-dn.on{display:grid}
+@media(prefers-reduced-motion:reduce){.vc,.vc *{animation:none!important;transition:none!important}}
+</style>
 <style id="fxcss">
 /* ===== WOK 3.093: menu Fitur (game & alat) ===== */
 .topbar .iconbtn{width:33px;border-radius:11px}
@@ -809,16 +844,25 @@ body{animation:none}
 @media (prefers-reduced-motion:reduce){.msg,.vnrec,.replybar{animation:none}}
 </style>
 <!-- CALL -->
-<section class="call" id="call" data-state="idle" aria-label="Telepon WOK-BOT">
-  <div class="who"><h2>WOK-BOT</h2><p id="callTime">00:00</p></div>
-  <div class="orb-wrap"><div class="orb"></div></div>
-  <div class="status" id="callStatus">Menghubungkan...</div>
+<section class="vc" id="call" data-state="idle" aria-label="Video call WOK-BOT">
+  <video id="vcVid" playsinline muted autoplay></video><div class="vc-shade"></div>
+  <div class="vc-top"><h2>WOK-BOT</h2><p id="callStatus">Menghubungkan...</p><small id="callTime">00:00</small></div>
+  <button class="vc-beauty" id="vcBeauty" aria-label="Efek wajah"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14c1 2.6 6 2.6 8 0M9 9.5h.01M15 9.5h.01"/></svg><b id="vcBeautyN">0%</b></button>
+  <div class="vc-side">
+    <button class="vc-r" id="vcShare" aria-label="Ajak teman"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="3.6" fill="currentColor"/><path d="M3.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6z" fill="currentColor"/><path d="M19 7v6M16 10h6"/></svg></button>
+    <button class="vc-r" id="vcFlip" aria-label="Balik kamera"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z" fill="currentColor"/><path d="M9 13a3 3 0 0 1 5.2-2M15 13a3 3 0 0 1-5.2 2" stroke="#000" stroke-width="1.6"/></svg></button>
+    <button class="vc-r" id="vcFx" aria-label="Filter"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19 16 8l2 2L7 21z" fill="currentColor"/><path d="M14 3v3M20 9h3M19 4l-2 2M5 5l2 2M10 2v2" /></svg></button>
+    <span class="vc-fxn" id="vcFxN"></span>
+  </div>
+  <div class="vc-bot"><div class="orb2"><i></i></div></div>
   <div class="caption" id="callCap"></div>
-  <form class="typebox" id="callType"><input id="callText" placeholder="Ketik jawabanmu" autocomplete="off"><button type="submit" aria-label="Kirim"><svg class="ico" data-i="send"></svg></button></form>
-  <div class="ctrls">
-    <button class="cbtn" id="callMute" aria-label="Bisukan mikrofon"><svg class="ico" data-i="mic"></svg></button>
-    <button class="cbtn end" id="callEnd" aria-label="Akhiri panggilan"><svg class="ico" data-i="phone"></svg></button>
-    <button class="cbtn" id="callKeys" aria-label="Ketik pesan"><svg class="ico" data-i="keyboard"></svg></button>
+  <form class="typebox" id="callType"><input id="callText" placeholder="Ketik jawabanmu" autocomplete="off"><button type="submit" aria-label="Kirim"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12 20 4l-5 16-3-7z" fill="currentColor"/></svg></button></form>
+  <div class="vc-bar">
+    <button class="vb" id="callKeys" aria-label="Ketik pesan"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg></button>
+    <button class="vb" id="vcVidBtn" aria-label="Kamera"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12" height="12" rx="2.5" fill="currentColor"/><path d="m16 10 5-3v10l-5-3z" fill="currentColor"/></svg></button>
+    <button class="vb on" id="vcSpk" aria-label="Speaker"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></button>
+    <button class="vb" id="callMute" aria-label="Bisukan mikrofon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/><path d="M4 4l16 16" class="sl"/></svg></button>
+    <button class="vb end" id="callEnd" aria-label="Akhiri panggilan"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14.5c5-4.6 13-4.6 18 0l-2.3 2.7-3.2-1.6v-2.6a11 11 0 0 0-7 0v2.6l-3.2 1.6z" fill="currentColor"/></svg></button>
   </div>
 </section>
 <script>
@@ -1245,7 +1289,7 @@ function setCall(state,status){callEl.dataset.state=state;$("#callStatus").textC
 $("#callBtn").addEventListener("click",startCall);
 async function startCall(){
   if(callOn)return;callOn=true;muted=false;$("#callMute").classList.remove("on");$("#callCap").textContent="";
-  callEl.classList.add("on");setCall("idle","Menghubungkan...");
+  callEl.classList.add("on");setCall("idle","Calling");vcOpen();
   var canListen=!!SR;$("#callType").classList.toggle("on",!canListen);
   callStart=Date.now();clearInterval(callTimerT);
   callTimerT=setInterval(function(){var s=Math.floor((Date.now()-callStart)/1000);$("#callTime").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")},500);
@@ -1255,9 +1299,9 @@ async function startCall(){
   loopListen();
 }
 async function botSpeak(text,skipHistory){
-  if(!callOn)return;setCall("speaking","WOK-BOT berbicara");$("#callCap").textContent=plain(text);
+  if(!callOn)return;setCall("speaking","Connected");$("#callCap").textContent=plain(text);
   if(!skipHistory){}
-  await speak(text);
+  if(vcSpk)await speak(text);else await sleep(Math.min(3000,text.length*45));
   if(callOn)setCall("idle","");
 }
 function loopListen(){
@@ -1296,12 +1340,43 @@ $("#callMute").addEventListener("click",function(){
 });
 $("#callEnd").addEventListener("click",endCall);
 function endCall(){
-  if(!callOn)return;callOn=false;clearInterval(callTimerT);
+  if(!callOn)return;vcClose();callOn=false;clearInterval(callTimerT);
   if(callRec){try{callRec.abort()}catch(_){}callRec=null}
   try{speechSynthesis.cancel()}catch(_){}
   var d=$("#callTime").textContent;callEl.classList.remove("on");$("#callType").classList.remove("on");$("#callKeys").classList.remove("on");
   notice("Panggilan berakhir, durasi "+d);
 }
+
+/* ================= VIDEO CALL UI ================= */
+var vcSpk=true,vcStream=null,vcFace="user",vcBeautyV=0,vcFxI=0,vcCamOn=false;
+var VCFX=[["","Normal"],["sepia(.35) saturate(1.2) hue-rotate(-8deg)","Hangat"],["saturate(.9) hue-rotate(15deg) brightness(1.03)","Dingin"],["grayscale(1) contrast(1.1)","Hitam putih"],["sepia(.6) contrast(.9) saturate(.8)","Jadul"]];
+function vcFilter(){var v=$("#vcVid"),b=vcBeautyV/100;v.style.filter=(VCFX[vcFxI][0]+" brightness("+(1+.12*b)+") contrast("+(1-.08*b)+") blur("+(b*.7)+"px)").trim()}
+async function vcCam(){
+  try{if(vcStream)vcStream.getTracks().forEach(function(t){t.stop()});
+    vcStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:vcFace},audio:false});
+    var v=$("#vcVid");v.srcObject=vcStream;callEl.classList.add("cam");callEl.classList.toggle("back",vcFace==="environment");vcCamOn=true;$("#vcVidBtn").classList.add("on");vcFilter()
+  }catch(e){vcCamOn=false;callEl.classList.remove("cam");$("#vcVidBtn").classList.remove("on");notice("Kamera tidak bisa dibuka. Cek izin kamera di browser.")}
+}
+function vcOpen(){vcFilter();$("#vcBeautyN").textContent=vcBeautyV+"%";if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)vcCam()}
+function vcClose(){if(vcStream){vcStream.getTracks().forEach(function(t){t.stop()});vcStream=null}$("#vcVid").srcObject=null;callEl.classList.remove("cam");vcCamOn=false;$("#vcVidBtn").classList.remove("on")}
+$("#vcVidBtn").addEventListener("click",function(){if(vcCamOn){vcClose()}else vcCam()});
+$("#vcFlip").addEventListener("click",function(){vcFace=vcFace==="user"?"environment":"user";if(vcCamOn)vcCam()});
+$("#vcFx").addEventListener("click",function(){vcFxI=(vcFxI+1)%VCFX.length;$("#vcFxN").textContent=VCFX[vcFxI][1];vcFilter();clearTimeout(vcFx.t);vcFx.t=setTimeout(function(){$("#vcFxN").textContent=""},1600)});
+function vcFx(){}
+$("#vcBeauty").addEventListener("click",function(){vcBeautyV=vcBeautyV>=100?0:vcBeautyV+25;$("#vcBeautyN").textContent=vcBeautyV+"%";vcFilter()});
+$("#vcSpk").addEventListener("click",function(){vcSpk=!vcSpk;this.classList.toggle("on",vcSpk);if(!vcSpk){try{speechSynthesis.cancel()}catch(_){}}});
+$("#callMute").addEventListener("click",function(){this.classList.toggle("mutedx",this.classList.contains("on"))});
+$("#vcShare").addEventListener("click",function(){var u=location.href;if(navigator.share)navigator.share({title:"WOK",url:u}).catch(function(){});else if(navigator.clipboard){navigator.clipboard.writeText(u);notice("Link WOK disalin")}});
+/* ---- chat extras: tombol turun & ekspor ---- */
+(function(){var m=$("#msgs"),f=document.createElement("button");f.className="fab-dn";f.setAttribute("aria-label","Ke pesan terbaru");
+  f.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>';
+  m.parentNode.appendChild(f);m.parentNode.style.position="relative";
+  m.addEventListener("scroll",function(){f.classList.toggle("on",m.scrollHeight-m.scrollTop-m.clientHeight>240)});
+  f.onclick=function(){m.scrollTo({top:m.scrollHeight,behavior:"smooth"})};
+  var b=document.createElement("button");b.className="btn ghost";b.textContent="Ekspor chat (.txt)";
+  b.onclick=function(){var t=history.filter(function(x){return x.text}).map(function(x){return (x.role==="user"?"Kamu":"WOK-BOT")+": "+plain(x.text)}).join("\n\n");
+    if(!t){notice("Belum ada chat");return}var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/plain"}));a.download="chat-wok.txt";a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},2000)};
+  var lo=$("#logout");lo.parentNode.insertBefore(b,lo)})();
 
 /* ================= SHEETS ================= */
 var scrim=$("#scrim"),openSheetEl=null;
@@ -2869,4 +2944,67 @@ document.addEventListener("keydown",function(e){if(e.key==="Escape"&&panel.class
 window.WOKFX={features:FE,open:openPanel,close:closePanel};
 })();
 </script>
+<style id="v5">
+/* ===== LOGIN: kartu teal ala referensi ===== */
+html body #login{background:radial-gradient(circle at 85% 8%,#c9ffff,transparent 45%),linear-gradient(145deg,#6fe6e6,#12aebd)!important}
+#login .aurora,#login .grain{display:none!important}
+#login .login-wrap{width:min(86vw,350px);padding:34px 26px 26px;margin:auto;background:linear-gradient(160deg,#2f7186,#0d4757 70%,#0a3a49);box-shadow:0 0 0 13px #8ff0ee,0 0 70px 24px #3fd2d6aa,0 24px 50px #0a4a5a66;border-radius:0;align-items:stretch;text-align:center}
+#login .logo{width:84px;height:84px;margin:0 auto 10px;border:2px solid #7fc3c8;border-radius:50%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238fd0d4' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7'/%3E%3C/svg%3E") center/46px no-repeat!important;box-shadow:none}
+#login .brand{font:300 25px var(--f-body)!important;letter-spacing:.3em;color:#8fd0d4!important;margin:6px 0 4px}
+#login .tagline{color:#8fb9c0!important;font-size:13px;margin:0 0 18px}
+#login .card{background:none!important;border:0!important;box-shadow:none!important;padding:0!important;color:#cdeeee}
+#login .card h2{color:#d6f3f3!important;font:500 17px var(--f-body)!important}#login .card p{color:#8fb9c0!important}
+#login .field input{background:transparent!important;border:0!important;border-bottom:1.5px solid #5fc7c9!important;border-radius:0!important;color:#e6fafa!important;box-shadow:none!important}
+#login .field label{color:#8fcbd0!important}
+#login .btn{background:#03212a!important;color:#fff!important;border:0!important;border-radius:0!important;letter-spacing:.28em;text-transform:uppercase;font-weight:700;box-shadow:none!important}
+#login .btn .sheen{display:none}#login .btn.ghost{background:transparent!important;color:#9fd6d9!important;letter-spacing:.04em;text-transform:none;font-weight:500}
+#login .back,#login .timer-row,#login .timer-row button{color:#9fd6d9!important}
+#login .otp .cell{background:#ffffff10!important;border:0!important;border-bottom:2px solid #5fc7c9!important;border-radius:6px 6px 0 0!important;color:#fff!important}
+#login .otp-code{background:#00000030!important;border:0!important;color:#d6f3f3!important}
+#login .err{color:#ffb4a8!important}
+/* ===== CHAT: navy + bubble biru ala referensi ===== */
+html body #chat{--bg:#071f3a;--surface:#123a5a;--surface2:#12385a;--fg:#eaf3ff;--muted:#8fb0cf;--line:#1b4a6e;--accent:#2f7bff;--accent-soft:#2f7bff33;--ink:transparent;--sh:transparent;background:#071f3a!important;color:#eaf3ff}
+#chat .chat-col{max-width:640px;background:#0a2a47;box-shadow:0 0 0 1px #1b4a6e55}
+#chat .topbar{background:#0f4a63!important;border:0!important;padding:max(12px,env(safe-area-inset-top,0px)) 8px 12px 12px;gap:0;border-radius:0}
+#chat .topbar .logo{width:44px;height:44px;border-radius:50%;border:0;margin-right:2px}
+#chat .topbar .who b{font:600 17px var(--f-body)!important;letter-spacing:0!important;color:#fff}
+#chat .topbar .who span{color:#b8d4e6}#chat .topbar .who span i{background:#4be39a!important}
+#chat .topbar .iconbtn{color:#e6f2fb;width:38px;height:38px}#chat #themeBtn,#chat #csBtn{display:none}
+#chat .msgs{padding:16px 14px 10px;gap:10px}
+.daypill{align-self:center;background:#ffffff1f;color:#dbe9f6;font-size:12px;padding:5px 16px;border-radius:14px}
+html body #chat .bubble{border:0!important;box-shadow:none!important;transform:none!important;color:#fff!important;padding:9px 12px 8px;line-height:1.4;font-size:15px}
+html body #chat .msg.user .bubble{background:#1b5be0!important;border-radius:16px 16px 4px 16px!important}
+html body #chat .msg.bot .bubble{background:#1648b4!important;border-radius:16px 16px 16px 4px!important}
+#chat .bubble::after{content:attr(data-t);float:right;margin:7px 0 -2px 12px;font-size:10px;opacity:.75;line-height:1}
+#chat .bubble code,#chat .bubble pre{background:#00000033!important;border:0!important;color:#e8f1ff}
+#chat .msg{max-width:84%}#chat .actions button{color:#8fb0cf}
+#chat .notice{color:#9fbad2;background:#ffffff14}
+#chat .composer{padding:8px 12px max(12px,env(safe-area-inset-bottom,0px))}
+html body #chat .inputbar{background:#ffffff1c!important;border:0!important;border-radius:28px!important;box-shadow:none!important;padding:5px 5px 5px 6px;transform:none!important}
+#chat .inputbar textarea{color:#fff}#chat .inputbar textarea::placeholder{color:#9fbad2}#chat .inputbar .iconbtn{color:#cfe2f3}
+html body #chat .inputbar .send{background:#2f7bff!important;color:#fff!important;width:46px;height:46px;box-shadow:0 4px 14px #2f7bff66}
+#chat .inputbar .send:disabled{opacity:.5}
+#chat .menu{background:#123a5a;color:#fff;border:0}
+</style>
+<script>
+(function(){var m=document.getElementById("msgs"),p=document.getElementById("prompt");if(!m)return;
+if(p)p.placeholder="Ketik pesan...";
+function tm(){return new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}).replace(".",":")}
+function fix(){var f=m.querySelector(".msg");
+  if(f&&!m.querySelector(".daypill")){var d=document.createElement("div");d.className="daypill";d.textContent="Hari ini";m.insertBefore(d,f)}
+  m.querySelectorAll(".msg .bubble:not([data-t])").forEach(function(b){b.dataset.t=tm()})}
+new MutationObserver(fix).observe(m,{childList:true});fix()})();
+</script>
+<style id="v5b">
+html body #login .login-wrap{gap:10px;padding:26px 24px 22px;margin:28px auto;height:auto}
+html body #login .login-wrap::after{display:none!important}
+html body #login .logo{width:78px;height:78px;margin:0 auto 4px;border:2px solid #8fd6da!important;border-radius:50%!important;background:#eafcfc!important;box-shadow:0 0 0 6px #ffffff14!important;animation:none!important;transform:none!important}
+#login .logo::before,#login .logo::after{display:none!important}
+#login .logo img.wl{width:68%;height:68%;animation:none}
+html body #login .brand{font:300 24px var(--f-body)!important;letter-spacing:.32em;text-indent:.32em;color:#a5dde0!important;text-shadow:none!important;transform:none!important;animation:none!important;margin:2px 0 0}
+html body #login .tagline{font:400 13px var(--f-body)!important;color:#8fbcc3!important;transform:none!important;padding:0!important;margin:0 0 6px;animation:none!important}
+#login .tagline::after{display:none!important}
+#login .card h2{font-size:16px!important;margin:6px 0 4px}#login .card p{font-size:13px;margin:0 0 6px}
+#login .field input{padding-left:4px!important}#login .field label{left:4px!important}
+</style>
 </body></html>
