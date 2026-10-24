@@ -3078,4 +3078,86 @@ html body #chat .notice{animation:aNotice .35s both}
 gb.addEventListener("click",function(e){var b=e.target.closest(".gb");if(b&&window.WOKFX)WOKFX.game(b.dataset.g||"")});
 var pg=document.getElementById("pickGame");if(pg)pg.addEventListener("click",function(){var m=document.getElementById("attMenu");if(m)m.hidden=true;if(window.WOKFX)WOKFX.game("")})})();
 </script>
+
+<style id="wok-mega-refresh">
+/* WOK refresh: restrained surfaces, clearer focus, compact mobile rhythm */
+:root{--wok-radius:16px}
+button,input,textarea,select{touch-action:manipulation}
+button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(min-width:900px){
+  #chat .chat-col{max-width:980px}
+  #chat .msgs{padding-inline:clamp(8px,2vw,28px)}
+  #chat .msg{max-width:min(78%,680px)}
+  #chat .bubble{line-height:1.62}
+}
+@media(max-width:600px){
+  body{padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}
+  #chat .topbar{gap:0;padding-bottom:8px}
+  #chat .topbar .who b{font-size:17px}
+  #chat .msgs{padding:14px 0 8px;gap:11px}
+  #chat .msg{max-width:91%}
+  #chat .bubble{padding:10px 13px;border-radius:17px;font-size:15px}
+  #chat .composer{padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}
+  #chat .inputbar{gap:3px;padding:5px}
+  #chat .inputbar .iconbtn{width:38px;height:38px}
+  #chat .inputbar textarea{padding:9px 4px}
+  #chat .actions{opacity:.85}
+}
+@media(hover:none){#chat .actions{opacity:1}}
+@media(prefers-reduced-motion:reduce){
+  html:focus-within{scroll-behavior:auto!important}
+  #chat .msgs{scroll-behavior:auto}
+}
+</style>
+<script id="wok-mega-functionality">
+(function(){
+  "use strict";
+  var $=function(s){return document.querySelector(s)};
+  var prompt=$("#prompt"),send=$("#sendBtn"),search=$("#sq");
+  if(!prompt)return;
+
+  /* Draft persistence: keep the user's unsent text after refresh. */
+  var DRAFT_KEY="wok.draft.v2";
+  try{
+    var draft=localStorage.getItem(DRAFT_KEY);
+    if(draft && !prompt.value) {
+      prompt.value=draft;
+      prompt.dispatchEvent(new Event("input",{bubbles:true}));
+    }
+  }catch(_){}
+  var draftTimer;
+  prompt.addEventListener("input",function(){
+    clearTimeout(draftTimer);
+    draftTimer=setTimeout(function(){
+      try{if(prompt.value.trim())localStorage.setItem(DRAFT_KEY,prompt.value);else localStorage.removeItem(DRAFT_KEY)}catch(_){}
+    },180);
+  });
+  if(send)send.addEventListener("click",function(){
+    try{localStorage.removeItem(DRAFT_KEY)}catch(_){}
+  });
+  prompt.addEventListener("keydown",function(e){
+    if(e.key==="Enter"&&!e.shiftKey){
+      setTimeout(function(){if(!prompt.value.trim()){try{localStorage.removeItem(DRAFT_KEY)}catch(_){}}},0);
+    }
+  });
+
+  /* Keyboard shortcuts are enabled only on physical-keyboard devices. */
+  document.addEventListener("keydown",function(e){
+    if(!(e.ctrlKey||e.metaKey)||e.altKey)return;
+    if(e.key.toLowerCase()==="k"){
+      var b=$("#sx");
+      if(b && search){e.preventDefault();search.closest("[hidden]")?.removeAttribute("hidden");search.focus();}
+    }
+    if(e.key.toLowerCase()==="enter" && document.activeElement===prompt && prompt.value.trim()){
+      /* Existing send handler remains the single source of truth. */
+    }
+  });
+
+  /* Prevent stale object URLs from causing a browser back/forward cache issue. */
+  window.addEventListener("pagehide",function(){
+    try{if(window.speechSynthesis)speechSynthesis.cancel()}catch(_){}
+  });
+})();
+</script>
+
 </body></html>
