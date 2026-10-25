@@ -1624,10 +1624,32 @@ var vcSpk=true,vcStream=null,vcFace="user",vcBeautyV=0,vcFxI=0,vcCamOn=false;
 var VCFX=[["","Normal"],["sepia(.35) saturate(1.2) hue-rotate(-8deg)","Hangat"],["saturate(.9) hue-rotate(15deg) brightness(1.03)","Dingin"],["grayscale(1) contrast(1.1)","Hitam putih"],["sepia(.6) contrast(.9) saturate(.8)","Jadul"]];
 function vcFilter(){var v=$("#vcVid"),b=vcBeautyV/100;v.style.filter=(VCFX[vcFxI][0]+" brightness("+(1+.12*b)+") contrast("+(1-.08*b)+") blur("+(b*.7)+"px)").trim()}
 async function vcCam(){
-  try{if(vcStream)vcStream.getTracks().forEach(function(t){t.stop()});
-    vcStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:vcFace},audio:false});
-    var v=$("#vcVid");v.srcObject=vcStream;callEl.classList.add("cam");callEl.classList.toggle("back",vcFace==="environment");vcCamOn=true;$("#vcVidBtn").classList.add("on");vcFilter()
-  }catch(e){vcCamOn=false;callEl.classList.remove("cam");$("#vcVidBtn").classList.remove("on");notice("Kamera tidak bisa dibuka. Cek izin kamera di browser.")}
+  if(vcStream){vcStream.getTracks().forEach(function(t){t.stop()});vcStream=null}
+  var v=$("#vcVid"),want=vcFace,stream=null,lastErr=null;
+  function grab(f){return navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:f}},audio:false})}
+  function pause(ms){return new Promise(function(r){setTimeout(r,ms)})}
+  try{
+    for(var k=0;k<2&&!stream;k++){
+      try{stream=await grab(want)}catch(e){lastErr=e;await pause(400)}
+    }
+    if(!stream&&want==="environment"){
+      vcFace="user";
+      notice("Kamera belakang nggak bisa dibuka, pakai kamera depan.");
+      stream=await grab("user");
+    }
+    if(!stream)throw lastErr||new Error("kamera tidak tersedia");
+    vcStream=stream;
+    v.srcObject=stream;
+    try{var pr=v.play();if(pr&&pr.catch)pr.catch(function(){})}catch(_){}
+    callEl.classList.add("cam");
+    callEl.classList.toggle("back",vcFace==="environment");
+    vcCamOn=true;$("#vcVidBtn").classList.add("on");vcFilter()
+  }catch(e){
+    vcStream=null;v.srcObject=null;vcCamOn=false;
+    callEl.classList.remove("cam");callEl.classList.remove("back");
+    $("#vcVidBtn").classList.remove("on");
+    notice("Kamera tidak bisa dibuka. Cek izin kamera di browser.")
+  }
 }
 function vcOpen(){vcFilter();$("#vcBeautyN").textContent=vcBeautyV+"%";if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)vcCam()}
 function vcClose(){if(vcStream){vcStream.getTracks().forEach(function(t){t.stop()});vcStream=null}$("#vcVid").srcObject=null;callEl.classList.remove("cam");vcCamOn=false;$("#vcVidBtn").classList.remove("on")}
