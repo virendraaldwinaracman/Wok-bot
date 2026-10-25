@@ -3140,4 +3140,47 @@ html body #chat .notice{animation:aNotice .35s both}
 gb.addEventListener("click",function(e){var b=e.target.closest(".gb");if(b&&window.WOKFX)WOKFX.game(b.dataset.g||"")});
 var pg=document.getElementById("pickGame");if(pg)pg.addEventListener("click",function(){var m=document.getElementById("attMenu");if(m)m.hidden=true;if(window.WOKFX)WOKFX.game("")})})();
 </script>
+<style id="flat-wa">
+/* flat ala WhatsApp Web, layout laptop. override terakhir, sengaja di akhir dokumen */
+html,body{height:100%;background:var(--bg)}
+body{background:var(--bg)!important;background-image:none!important;animation:none!important}
+.aurora,.grain{display:none!important}
+#login,#chat{background:var(--bg)}
+.logo{border:0!important;box-shadow:none!important;animation:none!important;border-radius:22px!important}
+.logo .bowl,.logo .steam path{animation:none!important}
+.card{transform:none!important;border:1px solid var(--line)!important;border-radius:14px!important;box-shadow:none!important;background:var(--surface)}
+.btn{border:0!important;border-radius:10px!important;box-shadow:none!important;transform:none!important}
+.btn .sheen{display:none}
+.topbar{background:var(--surface);border-bottom:1px solid var(--line)!important;padding-left:14px;padding-right:14px}
+.topbar .who b{font-family:var(--f-body);font-weight:600;font-size:16px;letter-spacing:0}
+.topbar .who span i{animation:none;background:var(--accent)}
+.iconbtn{border-radius:50%!important;color:var(--muted)}
+.iconbtn:hover{background:var(--surface2);color:var(--fg)}
+.gamebar{background:var(--surface);border-bottom:1px solid var(--line)}
+.gb{border-radius:16px!important;border:1px solid var(--line)!important;box-shadow:none!important;transform:none!important}
+#msgs,.msgs{background:var(--bg);padding:16px 4%!important;gap:6px!important}
+.msg.user .bubble{background:var(--accent-soft)!important;color:var(--fg)!important;border:0!important;box-shadow:none!important;border-radius:10px 10px 2px 10px!important;transform:none!important}
+.msg.bot .bubble{background:var(--surface)!important;color:var(--fg)!important;border:0!important;box-shadow:0 1px 1px rgba(0,0,0,.06)!important;border-radius:10px 10px 10px 2px!important;transform:none!important}
+.msg.user:nth-of-type(odd) .bubble,.msg.bot:nth-of-type(even) .bubble{transform:none!important}
+.bubble{padding:8px 12px!important;line-height:1.45!important;font-size:15px}
+.msg{max-width:70%}
+.bubble code,.bubble pre{border:0!important}
+.composer{background:var(--surface);border-top:1px solid var(--line);padding:10px 14px!important}
+.inputbar{background:var(--surface2)!important;border:0!important;box-shadow:none!important;border-radius:22px!important;transform:none!important}
+.inputbar:focus-within{box-shadow:none!important;transform:none!important;border:0!important}
+.inputbar textarea{color:var(--fg)}
+.inputbar .iconbtn.send{background:var(--accent);color:var(--accent-fg)}
+.inputbar .iconbtn.send:disabled{background:transparent;color:var(--muted)}
+.menu,.sheet .body,.sheet{box-shadow:var(--shadow)}
+.sheet{border-top:1px solid var(--line)!important;border-radius:14px 14px 0 0!important}
+/* laptop */
+@media (min-width:900px){
+  .chat-col{max-width:none;width:100%;border:0!important;padding:0}
+  .topbar{padding-left:20px;padding-right:20px}
+  .composer{padding:12px 20px!important}
+  .msgs{padding:20px 9%!important}
+  .msg{max-width:58%}
+  #login{display:grid;place-items:center}
+}
+</style>
 </body></html>
