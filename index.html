@@ -1227,6 +1227,7 @@ async function askAI(messages,onDelta,opts){
   if(!USE_PROXY&&!settings.key)throw NoKey();
   var pv=PROV[settings.provider]||PROV.openai;var base=(USE_PROXY?PROXY_URL:(settings.base||pv.base)).replace(/\/+$/,"");
   var model=settings.model||pv.model;
+  if(settings.provider==="groq"&&messages.some(function(x){return Array.isArray(x.content)})&&!/llama-4|vision/i.test(model))model="meta-llama/llama-4-scout-17b-16e-instruct";
   function req(m){var h={"Content-Type":"application/json"};if(!USE_PROXY)h["Authorization"]="Bearer "+settings.key;return fetch(base+"/chat/completions",{method:"POST",headers:h,
     body:JSON.stringify({model:m,messages:messages,stream:true,temperature:.7})})}
   var res=await req(model);
