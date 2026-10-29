@@ -513,9 +513,12 @@ body{animation:none}
     <div class="msgs" id="msgs" aria-live="polite"></div>
     <div class="composer">
       <div class="menu" id="attMenu" hidden>
-        <button id="pickPhoto"><svg class="ico" data-i="image"></svg>Foto</button>
+        <div class="att-tiles">
+          <button id="pickCam"><svg class="ico" data-i="camera"></svg><span>Kamera</span></button>
+          <button id="pickPhoto"><svg class="ico" data-i="image"></svg><span>Foto</span></button>
+          <button id="pickFile"><svg class="ico" data-i="file"></svg><span>File</span></button>
+        </div>
         <button id="pickGame">Game</button><button id="pickSchool">Pengingat Sekolah</button>
-        <button id="pickFile"><svg class="ico" data-i="file"></svg>File</button>
       </div>
       <div class="attach-row" id="attRow"></div>
       <div class="inputbar" id="inputbar">
@@ -529,6 +532,7 @@ body{animation:none}
   </div>
 </main>
 <input type="file" id="photoIn" accept="image/*" multiple hidden>
+<input type="file" id="camIn" accept="image/*" capture="environment" hidden>
 <input type="file" id="fileIn" accept=".txt,.md,.csv,.json,.js,.ts,.py,.html,.css,.log,.xml,.yml,.yaml,text/*" multiple hidden>
 
 <!-- SHEETS -->
@@ -945,7 +949,7 @@ var IC={
  gear:'<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.3 3h-4l-.4 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5a7 7 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.4 2.7h4l.4-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/>',
  plus:'<path d="M12 5v14M5 12h14"/>',mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
  send:'<path d="M4 12l16-8-6 16-3-7z"/>',image:'<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/>',
- file:'<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/>',
+ camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',file:'<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/>',
  x:'<path d="M6 6l12 12M18 6L6 18"/>',copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>',
  chev:'<path d="M6 9l6 6 6-6"/>',keyboard:'<rect x="2.5" y="6" width="19" height="12" rx="3"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'
@@ -1282,17 +1286,17 @@ function offlineReply(q){
 /* ----- lampiran ----- */
 $("#attBtn").addEventListener("click",function(e){e.stopPropagation();$("#attMenu").hidden=!$("#attMenu").hidden});
 document.addEventListener("click",function(e){if(!e.target.closest("#attMenu"))$("#attMenu").hidden=true});
-$("#pickPhoto").onclick=function(){$("#photoIn").click()};$("#pickFile").onclick=function(){$("#fileIn").click()};
+$("#pickPhoto").onclick=function(){$("#photoIn").click()};$("#pickCam").onclick=function(){$("#camIn").click()};$("#pickFile").onclick=function(){$("#fileIn").click()};
 function shrink(file){return new Promise(function(res,rej){
   var fr=new FileReader();fr.onerror=rej;fr.onload=function(){
     var im=new Image();im.onerror=rej;im.onload=function(){
       var M=1280,sc=Math.min(1,M/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);
       c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.82))};im.src=fr.result};fr.readAsDataURL(file)})}
 function readText(file){return new Promise(function(res,rej){var fr=new FileReader();fr.onerror=rej;fr.onload=function(){res(String(fr.result).slice(0,60000))};fr.readAsText(file)})}
-$("#photoIn").addEventListener("change",async function(){
+["#photoIn","#camIn"].forEach(function(sel){$(sel).addEventListener("change",async function(){
   for(var f of this.files){try{pending.push({type:"image",name:f.name,data:await shrink(f)})}catch(e){notice("Foto "+f.name+" tidak bisa dibuka.")}}
   this.value="";renderAtt();autosize();$("#attMenu").hidden=true;
-});
+})});
 $("#fileIn").addEventListener("change",async function(){
   for(var f of this.files){try{pending.push({type:"file",name:f.name,text:await readText(f)})}catch(e){notice("File "+f.name+" tidak bisa dibaca sebagai teks.")}}
   this.value="";renderAtt();autosize();$("#attMenu").hidden=true;
@@ -1508,13 +1512,13 @@ $("#csForm").addEventListener("submit",async function(e){
   await sleep(500);
   if(ok)csSay((a?a+"\n\n":"")+"Oke, pesanmu sudah masuk ke kami. Balasannya kami kirim ke "+mail+" dalam 1x24 jam.");
   else{
-    csSay("Pesan belum terkirim. "+why+(a?"\n\n"+a:""));
+    csSay("Pengiriman otomatis belum berhasil. "+why+" Aku buka Gmail supaya pesanmu bisa langsung dikirim."+(a?"\n\n"+a:""));
     var w=document.createElement("div");w.className="msg bot";
     var lk=document.createElement("a");
     lk.className="bubble";lk.style.cssText="color:var(--accent);font-weight:600;text-decoration:underline;display:block";
-    lk.textContent="Kirim lewat aplikasi email";
+    lk.textContent="Buka Gmail untuk kirim";
     lk.href="mailto:"+CS_TO+"?subject="+encodeURIComponent("Pesan CS WOK BOT dari "+mail)+"&body="+encodeURIComponent(v+"\n\nBalas ke: "+mail);
-    w.appendChild(lk);var lg=$("#csLog");lg.appendChild(w);lg.scrollTop=lg.scrollHeight;
+    w.appendChild(lk);var lg=$("#csLog");lg.appendChild(w);lg.scrollTop=lg.scrollHeight;setTimeout(function(){try{location.href=lk.href}catch(_){}},700);
   }
 });
 /* pengaturan */
@@ -3359,6 +3363,13 @@ html body .sheet{background:var(--surface);border:1px solid var(--line);border-b
 html body .sheet h3{font:700 18px var(--f-display)}
 html body .btn{border-radius:14px;font-family:var(--f-body)}
 html body .set-field input,html body .set-field select,html body .cs-mail,html body .cs-row input{background:var(--bg);border:1px solid var(--line);border-radius:12px}
+
+/* menu lampiran: ubin Kamera / Foto / File */
+html body .menu#attMenu{min-width:min(300px,86vw);padding:8px;gap:2px;border-radius:22px}
+html body .att-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
+html body .att-tiles button{flex-direction:column;justify-content:center;align-items:center;gap:8px;padding:14px 6px;background:var(--surface2);border-radius:16px;text-align:center;font:500 13.5px var(--f-body)}
+html body .att-tiles button:hover{background:var(--line)}
+html body .att-tiles .ico{width:26px;height:26px}
 
 /* ---------- panggilan ---------- */
 html body .call{background:#0b0c10}
