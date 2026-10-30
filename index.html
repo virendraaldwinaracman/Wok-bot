@@ -1224,6 +1224,15 @@ async function pickModel(base,pv,bad){
     return ids[0]||null;
   }catch(_){return null}
 }
+async function pickVision(k,bad){
+  if(!bad){try{var c=localStorage.getItem("wok.vmodel");if(c)return c}catch(_){}}
+  try{
+    var r=await fetch("https://api.groq.com/openai/v1/models",{headers:{Authorization:"Bearer "+k}});
+    if(!r.ok)return null;var j=await r.json();
+    var ids=(j.data||[]).map(function(m){return m.id}).filter(function(i){return i!==bad&&/(scout|maverick|vision|[-_]vl\b|llama-4|llava)/i.test(i)&&!/whisper|tts|guard|safeguard|orpheus|playai/i.test(i)});
+    var v=ids[0]||null;if(v){try{localStorage.setItem("wok.vmodel",v)}catch(_){}}return v;
+  }catch(_){return null}
+}
 async function askAI(messages,onDelta,opts){
   var hasImg=messages.some(function(x){return Array.isArray(x.content)}),pk="";try{pk=localStorage.getItem("wok.photokey")||""}catch(_){}
   var direct=hasImg&&!!pk,px=USE_PROXY&&!direct;
@@ -1231,9 +1240,11 @@ async function askAI(messages,onDelta,opts){
   var pv=PROV[settings.provider]||PROV.openai;var base=(direct?"https://api.groq.com/openai/v1":px?PROXY_URL:(settings.base||pv.base)).replace(/\/+$/,"");
   var model=settings.model||pv.model;
   if(settings.provider==="groq"&&messages.some(function(x){return Array.isArray(x.content)})&&!/llama-4|vision/i.test(model))model="meta-llama/llama-4-scout-17b-16e-instruct";
+  if(direct){var vm=await pickVision(pk);if(vm)model=vm}
   function req(m){var h={"Content-Type":"application/json"};if(!px)h["Authorization"]="Bearer "+(direct?pk:settings.key);return fetch(base+"/chat/completions",{method:"POST",headers:h,
     body:JSON.stringify({model:m,messages:messages,stream:true,temperature:.7})})}
   var res=await req(model);
+  if(direct&&!res.ok&&(res.status===404||res.status===400)){try{localStorage.removeItem("wok.vmodel")}catch(_){}var vm2=await pickVision(pk,model);if(vm2){model=vm2;res=await req(model)}}
   if(!res.ok&&res.status===413){
     /* terlalu besar: coba lagi hanya dengan pesan terakhir, dipotong */
     var lastM=messages[messages.length-1],c0=lastM.content;
