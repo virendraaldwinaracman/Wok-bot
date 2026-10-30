@@ -1229,6 +1229,7 @@ async function pickVision(k,bad){
   try{
     var r=await fetch("https://api.groq.com/openai/v1/models",{headers:{Authorization:"Bearer "+k}});
     if(!r.ok)return null;var j=await r.json();
+    try{window.__gm=(j.data||[]).map(function(m){return m.id})}catch(_){}
     var ids=(j.data||[]).map(function(m){return m.id}).filter(function(i){return i!==bad&&/(scout|maverick|vision|[-_]vl\b|llama-4|llava)/i.test(i)&&!/whisper|tts|guard|safeguard|orpheus|playai/i.test(i)});
     var v=ids[0]||null;if(v){try{localStorage.setItem("wok.vmodel",v)}catch(_){}}return v;
   }catch(_){return null}
@@ -1240,7 +1241,7 @@ async function askAI(messages,onDelta,opts){
   var pv=PROV[settings.provider]||PROV.openai;var base=(direct?"https://api.groq.com/openai/v1":px?PROXY_URL:(settings.base||pv.base)).replace(/\/+$/,"");
   var model=settings.model||pv.model;
   if(settings.provider==="groq"&&messages.some(function(x){return Array.isArray(x.content)})&&!/llama-4|vision/i.test(model))model="meta-llama/llama-4-scout-17b-16e-instruct";
-  if(direct){var vm=await pickVision(pk);if(vm)model=vm}
+  if(direct){var vm=await pickVision(pk);if(vm)model=vm;else{model="llama-3.3-70b-versatile";messages=messages.map(function(x){return Array.isArray(x.content)?{role:x.role,content:x.content.filter(function(p){return p.type==="text"}).map(function(p){return p.text}).join("\n")+"\n\n[Pengguna melampirkan foto, tapi tidak ada model gambar. Jelaskan itu dengan singkat.]"}:x});try{notice("[v6] Akun Groq-mu tidak punya model yang bisa membaca gambar. Model di akunmu: "+((window.__gm||[]).slice(0,10).join(", ")||"tidak terbaca (cek kunci)"))}catch(_){}}}
   function req(m){var h={"Content-Type":"application/json"};if(!px)h["Authorization"]="Bearer "+(direct?pk:settings.key);return fetch(base+"/chat/completions",{method:"POST",headers:h,
     body:JSON.stringify({model:m,messages:messages,stream:true,temperature:.7})})}
   var res=await req(model);
