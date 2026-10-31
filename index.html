@@ -555,7 +555,7 @@ body{animation:none}
   <div class="body">
     <div class="warn" style="line-height:1.6">WOK BOT lahir dari ide sederhana: punya teman ngobrol AI yang bisa dibuka dari HP tanpa install apa-apa.<br><br>Obrolanmu langsung dikirim dari browser ke penyedia AI pilihanmu (Groq, OpenAI, atau Gemini) pakai API key milikmu sendiri. Nggak ada yang disimpan di server WOK.<br><br>Masih terus dirapikan, jadi kalau nemu yang aneh, kabarin lewat CS.</div>
     <div class="contact"><span>Dibuat oleh<br><b>virendraaldwinaracman</b></span></div>
-    <div class="contact"><span>Versi<br><b>4.000, update besar: voice note, menu pesan, cari pesan, gaya jawab, dan tampilan chat baru &amp; tampilan Fitur dibuat ulang</b></span></div>
+    <div class="contact"><span>Versi<br><b>199992948,28483v, update besar: voice note, menu pesan, cari pesan, gaya jawab, dan tampilan chat baru &amp; tampilan Fitur dibuat ulang</b></span></div>
   </div>
 </section>
 <section class="sheet" id="setSheet" aria-label="Pengaturan">
@@ -578,7 +578,7 @@ body{animation:none}
 .vc{position:fixed;inset:0;z-index:60;background:#2a2c2d;color:#fff;font-family:var(--f-body);opacity:0;pointer-events:none;transform:translateY(14px);transition:opacity .3s,transform .4s cubic-bezier(.2,.9,.2,1);overflow:hidden}
 .vc.on{opacity:1;pointer-events:auto;transform:none}
 .vc video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none;transition:filter .3s}
-.vc.cam video{display:block}.vc.back video{transform:none}
+.vc.cam video{display:block}.vc.rear video{transform:none}
 .vc-shade{position:absolute;inset:0;background:linear-gradient(#0006,#0000 22%,#0000 60%,#0007)}
 .vc:not(.cam){background:radial-gradient(120% 80% at 50% 20%,#4a4d4e,#1d1f20)}
 .vc-top{position:absolute;top:calc(env(safe-area-inset-top,0px) + 56px);left:0;right:0;text-align:center;text-shadow:0 1px 6px #0008}
@@ -1408,11 +1408,38 @@ function endCall(){
 var vcSpk=true,vcStream=null,vcFace="user",vcBeautyV=0,vcFxI=0,vcCamOn=false;
 var VCFX=[["","Normal"],["sepia(.35) saturate(1.2) hue-rotate(-8deg)","Hangat"],["saturate(.9) hue-rotate(15deg) brightness(1.03)","Dingin"],["grayscale(1) contrast(1.1)","Hitam putih"],["sepia(.6) contrast(.9) saturate(.8)","Jadul"]];
 function vcFilter(){var v=$("#vcVid"),b=vcBeautyV/100;v.style.filter=(VCFX[vcFxI][0]+" brightness("+(1+.12*b)+") contrast("+(1-.08*b)+") blur("+(b*.7)+"px)").trim()}
+async function vcGet(face){
+  var cons=[{video:{facingMode:{exact:face},width:{ideal:1280},height:{ideal:720}}},{video:{facingMode:face}},{video:true}],last;
+  for(var i=0;i<cons.length;i++){
+    try{
+      var s=await navigator.mediaDevices.getUserMedia({audio:false,video:cons[i].video});
+      if(i===2&&face==="environment"){
+        try{
+          var ds=(await navigator.mediaDevices.enumerateDevices()).filter(function(d){return d.kind==="videoinput"});
+          var bk=ds.filter(function(d){return /back|rear|belakang|environment/i.test(d.label)})[0];
+          if(bk){s.getTracks().forEach(function(t){t.stop()});s=await navigator.mediaDevices.getUserMedia({audio:false,video:{deviceId:{exact:bk.deviceId}}})}
+        }catch(_){}
+      }
+      return s;
+    }catch(e){last=e}
+  }
+  throw last;
+}
 async function vcCam(){
-  try{if(vcStream)vcStream.getTracks().forEach(function(t){t.stop()});
-    vcStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:vcFace},audio:false});
-    var v=$("#vcVid");v.srcObject=vcStream;callEl.classList.add("cam");callEl.classList.toggle("back",vcFace==="environment");vcCamOn=true;$("#vcVidBtn").classList.add("on");vcFilter()
-  }catch(e){vcCamOn=false;callEl.classList.remove("cam");$("#vcVidBtn").classList.remove("on");notice("Kamera tidak bisa dibuka. Cek izin kamera di browser.")}
+  try{
+    if(vcStream){vcStream.getTracks().forEach(function(t){t.stop()});vcStream=null}
+    try{vcStream=await vcGet(vcFace)}
+    catch(e1){
+      if(vcFace!=="environment")throw e1;
+      vcFace="user";notice("Kamera belakang tidak bisa dibuka, pakai kamera depan.");
+      vcStream=await vcGet("user");
+    }
+    var v=$("#vcVid");v.muted=true;v.setAttribute("playsinline","");v.srcObject=vcStream;
+    try{await v.play()}catch(_){}
+    var tr=vcStream.getVideoTracks()[0],f=tr&&tr.getSettings?(tr.getSettings().facingMode||""):"";
+    var back=f?f==="environment":vcFace==="environment";
+    callEl.classList.add("cam");callEl.classList.toggle("rear",back);vcCamOn=true;$("#vcVidBtn").classList.add("on");vcFilter();
+  }catch(e){vcCamOn=false;callEl.classList.remove("cam");$("#vcVidBtn").classList.remove("on");notice("Kamera tidak bisa dibuka. Cek izin kamera di browser atau pengaturan app.")}
 }
 function vcOpen(){vcFilter();$("#vcBeautyN").textContent=vcBeautyV+"%";if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)vcCam()}
 function vcClose(){if(vcStream){vcStream.getTracks().forEach(function(t){t.stop()});vcStream=null}$("#vcVid").srcObject=null;callEl.classList.remove("cam");vcCamOn=false;$("#vcVidBtn").classList.remove("on")}
@@ -2909,7 +2936,7 @@ QZ("q-satuan","","Satuan SI","Satuan SI untuk % adalah?","Panjang=Meter;Massa=Ki
 /* ======================= KERANGKA PANEL ======================= */
 var panel=document.createElement("section");
 panel.className="fx";panel.id="fx";panel.setAttribute("aria-hidden","true");panel.setAttribute("aria-label","Fitur WOK BOT");
-panel.innerHTML='<div class="fx-bar"><button class="iconbtn" id="fxBack" aria-label="Kembali">'+svg('<path d="M15 6l-6 6 6 6"/>')+'</button><b id="fxTitle">Fitur WOK BOT</b><span class="fx-ver">v4.000</span><button class="iconbtn" id="fxClose" aria-label="Tutup">'+svg('<path d="M6 6l12 12M18 6L6 18"/>')+'</button></div><div class="fx-body" id="fxBody"></div>';
+panel.innerHTML='<div class="fx-bar"><button class="iconbtn" id="fxBack" aria-label="Kembali">'+svg('<path d="M15 6l-6 6 6 6"/>')+'</button><b id="fxTitle">Fitur WOK BOT</b><span class="fx-ver">199992948,28483v</span><button class="iconbtn" id="fxClose" aria-label="Tutup">'+svg('<path d="M6 6l12 12M18 6L6 18"/>')+'</button></div><div class="fx-body" id="fxBody"></div>';
 document.body.appendChild(panel);
 var body=$("#fxBody",panel),ctx=null,view=null,tab="semua",q="";
 var tb=document.createElement("button");
@@ -3538,6 +3565,7 @@ html body .rm-job .s.note{font-style:italic}
 html body .rm-job .due{font-weight:700}
 html body .rm-job .due.hot{color:var(--danger)!important}
 html body .rm-job .due.warn{color:var(--sun)!important}
+html body .fx-ver{font-size:10px;padding:2px 7px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 </style>
 </body></html>
