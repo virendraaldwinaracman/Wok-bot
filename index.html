@@ -512,13 +512,12 @@ body{animation:none}
     <div class="msgs" id="msgs" aria-live="polite"></div>
     <div class="composer">
       <div class="menu" id="attMenu" hidden>
-        <button id="pickPhoto"><svg class="ico" data-i="image"></svg>Foto</button>
         <button id="pickGame">Game</button><button id="pickSchool">Pengingat Sekolah</button>
         <button id="pickFile"><svg class="ico" data-i="file"></svg>File</button>
       </div>
       <div class="attach-row" id="attRow"></div>
       <div class="inputbar" id="inputbar">
-        <button class="iconbtn" id="attBtn" aria-label="Lampirkan foto atau file"><svg class="ico" data-i="plus"></svg></button>
+        <button class="iconbtn" id="attBtn" aria-label="Lampirkan file"><svg class="ico" data-i="plus"></svg></button>
         <textarea id="prompt" rows="1" placeholder="Ketik pesan..."></textarea>
         <div class="rec-bar"><div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="live" id="recLive">Aku dengerin...</span></div>
         <button class="iconbtn mic" id="micBtn" aria-label="Rekam suara"><svg class="ico" data-i="mic"></svg></button>
@@ -1281,7 +1280,7 @@ function offlineReply(q){
 /* ----- lampiran ----- */
 $("#attBtn").addEventListener("click",function(e){e.stopPropagation();$("#attMenu").hidden=!$("#attMenu").hidden});
 document.addEventListener("click",function(e){if(!e.target.closest("#attMenu"))$("#attMenu").hidden=true});
-$("#pickPhoto").onclick=function(){$("#photoIn").click()};$("#pickFile").onclick=function(){$("#fileIn").click()};
+$("#pickFile").onclick=function(){$("#fileIn").click()};
 function shrink(file){return new Promise(function(res,rej){
   var fr=new FileReader();fr.onerror=rej;fr.onload=function(){
     var im=new Image();im.onerror=rej;im.onload=function(){
